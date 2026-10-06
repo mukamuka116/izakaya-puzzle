@@ -5,6 +5,7 @@ import { setPhase as markPhase } from './clickSound'
 import Panels from './components/account/Panels'
 import { DIFFICULTY, TITLE_MIN_PT } from './constants'
 import { RANK_MIN_PT, rankInfo } from './rank'
+import { setLastPlayAt } from './lastPlay'
 
 // 次のランクまで、あと何杯か（最高ランクなら null）
 const nextLeft = (totalBeers) => { const i = rankInfo(totalBeers); return i.need === null ? null : i.need - i.into }
@@ -70,7 +71,7 @@ function AppInner() {
       const before = rankInfo(user.totalBeers).rank
       setSubmit({ status: 'sending' })
       api.submitScore(token, { startToken, difficulty: diffKey, rawPt, finalPt: Math.round(rawPt * diff.mult), beers: st.fever, gero: st.gero })
-        .then((r) => { const after = rankInfo(r.totalBeers).rank; setSubmit({ status: 'ok', ranks: r.ranks, newTitle: r.newTitle, rankUp: after > before ? after : null, nextLeft: nextLeft(r.totalBeers) }); refresh() })
+        .then((r) => { setLastPlayAt(r.at); const after = rankInfo(r.totalBeers).rank; setSubmit({ status: 'ok', ranks: r.ranks, newTitle: r.newTitle, rankUp: after > before ? after : null, nextLeft: nextLeft(r.totalBeers) }); refresh() })
         .catch((e) => setSubmit({ status: 'error', message: e.message }))
     } else {
       setSubmit(null)

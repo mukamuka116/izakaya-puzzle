@@ -109,7 +109,7 @@ export async function submitScore(db, user0, body) {
     // 画面が探しやすいよう、本日のボードは日付ではなく "today#…" の名前で返す
     if (mine) ranks[key.replace(/^d:[^#]+/, 'today')] = (await db.countBefore(key, mine.sk)) + 1;
   }
-  return { best: account.best, totalBeers: account.totalBeers, totalGero: account.totalGero, ranks, newTitle, renewed: writes.map((w) => w.board) };
+  return { best: account.best, totalBeers: account.totalBeers, totalGero: account.totalGero, ranks, newTitle, at, renewed: writes.map((w) => w.board) };
 }
 
 // ---- ランキング ----

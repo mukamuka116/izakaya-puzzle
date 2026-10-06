@@ -6,6 +6,7 @@ import { playSound } from '../../sound'
 import { getSettings, resetSettings, setSettings, sfxVolume, useSettings } from '../../settings'
 import Digits from '../Digits'
 import { rankInfo } from '../../rank'
+import { getLastPlayAt } from '../../lastPlay'
 import { listTitles, NONE_TITLE } from '../../titles'
 
 const CROWN = { 1: '金', 2: '銀', 3: '銅' } // 1〜3位の王冠（Takoyaki Cascade と同じ画像）
@@ -376,8 +377,9 @@ function MyTab() {
             </tr>
           </thead>
           <tbody>
+            {/* 直近のプレイの記録は、赤く点滅（mine） */}
             {user.best.map((b, i) => (
-              <tr key={i}>
+              <tr key={i} className={getLastPlayAt() && b.at === getLastPlayAt() ? 'mine' : ''}>
                 <td className="rank"><RankMark rank={i + 1} /></td>
                 <td className="name"><small className={`diff-tag ${b.difficulty}`}>{DIFF_JA[b.difficulty]}</small></td>
                 <td className="num">{b.finalPt.toLocaleString()}<small>pt</small></td>

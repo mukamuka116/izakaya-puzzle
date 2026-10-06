@@ -903,3 +903,20 @@ body.power-save-mode .title-name { animation: none !important; }
 
 /* My：次のランクまでのビール画像を、4px上へ */
 .stat-line .beer-inline { translate: 0 -4px; }
+
+/* マニュアルのもくじ：各項目の木目（白）を、同じ画像のまま、拡大と基準位置を変えて、柄が揃わないようにする（15項目） */
+.manual-toc-list li:nth-child(1) a { background-size: 260% auto; background-position: 11% 25%; }
+.manual-toc-list li:nth-child(2) a { background-size: 307% auto; background-position: 48% 78%; }
+.manual-toc-list li:nth-child(3) a { background-size: 354% auto; background-position: 85% 65%; }
+.manual-toc-list li:nth-child(4) a { background-size: 401% auto; background-position: 21% 52%; }
+.manual-toc-list li:nth-child(5) a { background-size: 278% auto; background-position: 58% 39%; }
+.manual-toc-list li:nth-child(6) a { background-size: 325% auto; background-position: 95% 26%; }
+.manual-toc-list li:nth-child(7) a { background-size: 372% auto; background-position: 31% 79%; }
+.manual-toc-list li:nth-child(8) a { background-size: 419% auto; background-position: 68% 66%; }
+.manual-toc-list li:nth-child(9) a { background-size: 296% auto; background-position: 4% 53%; }
+.manual-toc-list li:nth-child(10) a { background-size: 343% auto; background-position: 41% 40%; }
+.manual-toc-list li:nth-child(11) a { background-size: 390% auto; background-position: 78% 27%; }
+.manual-toc-list li:nth-child(12) a { background-size: 267% auto; background-position: 14% 80%; }
+.manual-toc-list li:nth-child(13) a { background-size: 314% auto; background-position: 51% 67%; }
+.manual-toc-list li:nth-child(14) a { background-size: 361% auto; background-position: 88% 54%; }
+.manual-toc-list li:nth-child(15) a { background-size: 408% auto; background-position: 24% 41%; }
