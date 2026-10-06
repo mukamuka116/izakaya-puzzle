@@ -34,7 +34,7 @@ function AppInner() {
   const diff = DIFFICULTY[diffKey]
   useEffect(() => { markPhase(phase) }, [phase]) // ゲーム中は、クリック音を鳴らさない（例外あり）
   const { user, token, openPanel, refresh } = useAuth()
-  const { pest } = useSettings()
+  const { pest, powerSave } = useSettings()
   const startTokenRef = useRef(null)
   const [submit, setSubmit] = useState(null) // スコア送信の結果（ログイン中のみ）
 
@@ -102,7 +102,7 @@ function AppInner() {
                 : (rawScore >= TITLE_MIN_PT ? '称号：すべて獲得済みです' : `スコア${TITLE_MIN_PT.toLocaleString()}pt以上で称号を獲得できます`))}
             </div>
             {user && submit.rankUp && <div>ランクアップ！ <span className="title-name">ランク{submit.rankUp}</span> になった！</div>}
-            {user && <div>{submit.nextLeft === null ? 'ランクは最高です' : <>ランクアップまで、あと <img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="title-name">{submit.nextLeft}</span></>}</div>}
+            {user && <div>{submit.nextLeft === null ? 'ランクは最高です' : <>次のランクまで、あと <img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="title-name">{submit.nextLeft}</span></>}</div>}
           </div>
         )}
         <p className="line submit-line">
@@ -144,7 +144,8 @@ function AppInner() {
         ))}
       </div>
       <button className="btn start" onClick={startGame}>スタート</button>
-      {!(user && pest === 'mouse') && <button className="link pest-link" onClick={() => openPanel(user ? 'edit' : 'login', 'pest')}>虫が苦手な人はこちらで設定変更</button>}
+      {!(user && pest === 'mouse') && <button className="link pest-link pest-up" onClick={() => openPanel(user ? 'edit' : 'login', 'pest')}>虫が苦手な人はこちらで設定変更</button>}
+      {!powerSave && <button className="link pest-link" onClick={() => openPanel('settings')}>バッテリーの減りがはやい場合</button>}
     </div>
     </>
   )

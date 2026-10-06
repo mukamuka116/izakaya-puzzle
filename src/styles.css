@@ -422,7 +422,7 @@ img { image-rendering: pixelated; }
 @keyframes bugWiggle { from { translate: -1px 0; } to { translate: 1px 1px; } }
 .bug.target img { animation: bugBlink .3s linear infinite alternate; }
 @keyframes bugBlink {
-  from { filter: drop-shadow(0 0 5px rgba(150, 70, 230, 0.7)); }
+  from { filter: drop-shadow(0 0 6px rgba(150, 70, 230, 0.95)) drop-shadow(0 0 12px rgba(150, 70, 230, 0.75)); }
   to { filter: drop-shadow(0 0 6px #ff0000) sepia(1) saturate(9) hue-rotate(-40deg); }
 }
 .bug.dying img { width: 100%; height: 100%; animation: none; }
@@ -723,7 +723,10 @@ body.power-save-mode .piece.glow .pic { filter: none; }
 /* ランキングの自分の行：行の背景ではなく、文字だけを赤く点滅（間隔は同じ0.7秒） */
 .sheet .rank-table tr.mine td { background: none; animation: mineTextBlink .7s ease-in-out infinite alternate; }
 @keyframes mineTextBlink { from { color: #000; } to { color: #ff1a1a; } }
-body.power-save-mode .sheet .rank-table tr.mine td { background: none; color: #e00000; animation: none !important; }
+/* 省電力モードでも、ランキングの自分の行は点滅させる（ただし、なめらかに変えず、2.4秒に1回の切りかえだけにして負担を減らす） */
+body.power-save-mode .sheet .rank-table tr.mine td { background: none; color: #e00000; animation: mineTextBlinkSlow 2.4s steps(1, end) infinite !important; }
+body.power-save-mode .sheet .rank-table tr.mine td.date { animation: none !important; color: #4a3520; }
+@keyframes mineTextBlinkSlow { 0% { color: #000; } 50% { color: #ff1a1a; } }
 
 /* ===== ランキング全体を大きく ===== */
 .sheet.big { width: min(560px, 97vw); }
@@ -849,7 +852,7 @@ body.power-save-mode .title-name { animation: none !important; }
 .rank-link { color: var(--fg); }
 
 /* お邪魔キャラ：半透明の紫の影で、少しだけ目立たせる（煙の演出には付けない） */
-.bug:not(.dying) img { filter: drop-shadow(0 0 5px rgba(150, 70, 230, 0.7)); }
+.bug:not(.dying) img { filter: drop-shadow(0 0 6px rgba(150, 70, 230, 0.95)) drop-shadow(0 0 12px rgba(150, 70, 230, 0.75)); }
 
 /* HOME：「プレイ中」の表示をカードにする（黒の半透明・角丸）。ランクの数値だけ緑 */
 .home-account { background: rgba(0, 0, 0, 0.5); border-radius: 14px; padding: 10px 18px; }
@@ -868,6 +871,7 @@ body.power-save-mode .title-name { animation: none !important; }
 /* HOMEと結果画面：縦中央ではなく、ヘッダーの下から決まった余白で並べる（端末の高さで位置が変わらないように）
    位置の微調整は、この padding-top の値で行う */
 .screen.home, .screen.result { justify-content: flex-start; translate: 0 -50px; padding-top: 0; } /* 上詰めのまま、全体を50px上へ */
+.screen.result { translate: 0 0; } /* 結果画面だけ、50px下へ（HOMEとの差） */
 
 /* 設定を変えたあと、保存ボタンを少し拡大縮小して、押すことを促す */
 .btn.nudge { animation: nudge .9s ease-in-out infinite; }
@@ -875,3 +879,9 @@ body.power-save-mode .title-name { animation: none !important; }
 
 /* HOME：ランクの左に、設定中の称号（未設定なら「称号未設定」） */
 .home-account .home-title { margin-right: 14px; color: #d8c4ff; }
+
+/* 結果画面のカード：ビール画像は、標準（1.4rem）の85% */
+.result-card .beer-inline { width: 1.19rem; height: 1.19rem; }
+
+/* 「虫が苦手な人は～」だけ、8px上へ */
+.pest-up { translate: 0 -8px; }

@@ -12,8 +12,8 @@ import BeerMug from './BeerMug'
 import Digits from './Digits'
 import Piece from './Piece'
 
-// 色分け：つきだし=緑 / しめ=赤 / それ以外=黄色系（黄色の中で色相と明るさを変えて区別）
-const MAIN_BGS = ['hsla(30, 90%, 55%, 0.34)', 'hsla(48, 95%, 55%, 0.34)', 'hsla(62, 85%, 50%, 0.34)', 'hsla(40, 70%, 70%, 0.34)']
+// 色分け：つきだし=緑 / しめ=赤 / それ以外=青・オレンジ・紫・黄（色相を大きく離して、見分けやすくする）
+const MAIN_BGS = ['hsla(215, 90%, 58%, 0.42)', 'hsla(30, 95%, 55%, 0.40)', 'hsla(280, 75%, 62%, 0.42)', 'hsla(52, 95%, 55%, 0.40)']
 const bgOf = (kinds) => {
   let i = 0
   return Object.fromEntries(kinds.map((k) => [
