@@ -1,0 +1,14 @@
+{
+  "name": "puzzle-beers-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Puzzle & Beers のアカウント・スコア・ランキングAPI（Lambda）",
+  "scripts": {
+    "test": "node test/run.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1103.0",
+    "@aws-sdk/lib-dynamodb": "^3.1103.0"
+  }
+}

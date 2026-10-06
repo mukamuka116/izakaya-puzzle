@@ -1,0 +1,877 @@
+@font-face {
+  font-family: 'DotGothic16';
+  src: url('/fonts/DotGothic16-Regular.ttf');
+}
+
+:root {
+  /* スマホ前提：画面幅に合わせて1マスの大きさを決める（最大64px） */
+  --cell: min(64px, calc((100vw - 26px) / 6));
+  --bg: #0f0b08;
+  --fg: #f6ecd8;
+  --gold: #f0b429;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body, #root { margin: 0; min-height: 100%; }
+body {
+  background: var(--bg);
+  /* 居酒屋の背景画像。黒を重ねて半透明に見せ、文字を読みやすくする */
+  background-image: linear-gradient(rgba(15, 11, 8, 0.62), rgba(15, 11, 8, 0.62)), url('/images/居酒屋.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Yu Gothic', sans-serif;
+  font-weight: 500;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+img { image-rendering: pixelated; }
+
+/* ---- 画面共通 ---- */
+.screen {
+  min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 24px 16px; text-align: center;
+}
+.screen h1 { margin: 0; font-size: 2.2rem; color: var(--gold); }
+.lead { margin: 0; line-height: 1.7; }
+.diffs { display: flex; flex-direction: column; gap: 10px; width: min(320px, 100%); }
+.diff {
+  font: inherit; color: #000; background: url('/images/木目板（通常）.jpg') center / cover; border: 3px solid transparent; border-radius: 10px;
+  padding: 12px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; opacity: .7;
+}
+.diff b { font-size: 1.44rem; font-weight: 900; }
+.diff small { font-size: 1rem; font-weight: 700; opacity: .85; }
+.diff.on { opacity: 1; border-color: #ffd34d; box-shadow: 0 0 12px #ffd34d; }
+/* 決定系：白い木目＋黒字 / キャンセル系：黒い木目＋白字 */
+.btn {
+  font: inherit; font-size: 1.3rem; color: #000; background: url('/images/木目板（白）.jpg') center / cover; border: 0; border-radius: 10px;
+  padding: 14px 44px; cursor: pointer;
+}
+.btn { font-weight: 900; }
+.btn.cancel { color: #fff; background-image: url('/images/木目板（黒）.jpg'); }
+.line { margin: 0; font-size: 1.1rem; }
+.final { margin: 0; font-size: 2rem; color: var(--gold); }
+
+/* ---- ゲーム ---- */
+.game {
+  width: calc(var(--cell) * 6 + 26px); margin: 0 auto; padding: 8px 10px 16px;
+  min-height: 100dvh; touch-action: none;
+}
+.game.fever { background: radial-gradient(circle at 50% 60%, #4a2a05, transparent 70%); }
+
+.hud { display: flex; align-items: center; gap: 8px; height: 36px; margin-bottom: 10px; }
+.hud-icon { width: 28px; height: 28px; }
+.timebar { position: relative; flex: 1; height: 22px; background: #2a2018; border-radius: 6px; overflow: hidden; }
+.timefill { height: 100%; background: linear-gradient(90deg, #e8b030, #f0e060); transition: width .1s linear; }
+.timenum { width: 10ch; text-align: right; font-size: 1.05rem; white-space: pre; }
+
+.bonus { min-height: 26px; margin-bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: .8rem; }
+@keyframes blink { to { filter: brightness(1.4); } }
+
+.board {
+  position: relative; width: calc(var(--cell) * 6 + 6px); height: calc(var(--cell) * 6 + 6px); /* +6px = 左右・上下の枠線3pxぶん */
+  background: #1a130d; border: 3px solid #5a4430; border-radius: 6px;
+  overflow: hidden; touch-action: none; margin: 0 auto;
+  background-image:
+    linear-gradient(#ffffff0a 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff0a 1px, transparent 1px);
+  background-size: var(--cell) var(--cell);
+}
+
+.piece {
+  position: absolute; left: 0; top: 0; width: var(--cell); height: var(--cell);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .28s cubic-bezier(.3, .8, .4, 1), opacity .3s, scale .3s;
+}
+/* 固定サイズの枠。元画像の縦横比を保って収める */
+.pic { border-radius: 10px; width: calc(var(--cell) * .84); height: calc(var(--cell) * .84); display: flex; align-items: center; justify-content: center; }
+.pic img { max-width: 100%; max-height: 100%; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.piece.clearing { opacity: 0; scale: 1.4; }
+.piece.glow .pic { filter: drop-shadow(0 0 5px #ffe27a); }
+
+.combo {
+  position: absolute; left: 50%; top: 40%; translate: -50% -50%; font-size: 2rem; color: #ffe27a;
+  text-shadow: 2px 2px 0 #7a2a00; pointer-events: none; animation: combo 1s ease-out forwards;
+}
+@keyframes combo { 0% { scale: .4; opacity: 0; } 20% { scale: 1; opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+
+.toast, .over {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; font-size: 1.5rem; color: #fff; text-shadow: 2px 2px 0 #000; pointer-events: none;
+  animation: toast 1.4s ease-out forwards;
+}
+.over { background: #000000e6; animation: none; }
+.over img { filter: drop-shadow(0 0 14px #ffe27a); }
+.toast img { width: 64px; height: 64px; }
+.over img { width: 82%; max-height: 82%; object-fit: contain; }
+@keyframes toast { 0% { opacity: 0; scale: .6; } 15% { opacity: 1; scale: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* 下段：左=ポイントとげろげろ / 右下=ビール */
+.lower { display: flex; gap: 8px; margin-top: 10px; align-items: flex-start; }
+.left { flex: 1; display: flex; flex-direction: column; gap: 14px; padding-top: 10px; min-width: 0; }
+.right { position: relative; width: calc(var(--cell) * 2.25); flex: none; }
+.mug-canvas { display: block; }
+.beer-count { flex: none; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 1.6rem; }
+.digits { display: flex; font-variant-numeric: tabular-nums; }
+.digits b { font-weight: normal; min-width: 1ch; text-align: center; }
+.digits b.dim { opacity: .25; }
+.beer-count img { width: calc(var(--cell) * .55); height: calc(var(--cell) * .55); object-fit: contain; image-rendering: auto; }
+
+.row { display: flex; align-items: center; gap: 8px; position: relative; }
+.row-icon { width: 34px; height: 34px; flex: none; }
+.gero-icon { width: 52px; height: 52px; }
+.pt-icon { position: relative; flex: none; display: flex; }
+.pt-icon i { position: absolute; right: -2px; bottom: -3px; font-style: normal; font-weight: 900; font-size: .62rem; letter-spacing: .5px; color: #ff3b3b; -webkit-text-stroke: 1px #ff3b3b; paint-order: stroke fill; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
+.score { flex: 1; display: flex; align-items: baseline; justify-content: flex-end; text-align: right; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.score small { font-size: .9rem; margin-left: 3px; }
+.pops { position: absolute; left: 144px; top: -18px; pointer-events: none; }
+.pop { position: absolute; left: 0; white-space: nowrap; font-size: 1.1rem; text-shadow: 1px 1px 0 #000; animation: pop 1s ease-out forwards; }
+.pop.plus { color: #6bff7a; }
+.pop.minus { color: #ff5a5a; }
+@keyframes pop { from { opacity: 1; transform: translateY(14px); } to { opacity: 0; transform: translateY(-14px); } }
+
+.gauge { position: relative; flex: 1; height: 18px; background: #2a2018; border: 2px solid #5a4430; border-radius: 9px; overflow: hidden; }
+.gauge-fill { height: 100%; background: #4cc24f; transition: width .4s; }
+.gauge-add {
+  position: absolute; top: 0; height: 100%; background: #e53935; transform-origin: left;
+  animation: geroAdd 1s ease-out forwards;
+}
+@keyframes geroAdd { 0% { scale: 0 1; opacity: 1; } 60% { scale: 1 1; opacity: 1; } 100% { scale: 1 1; opacity: .7; } }
+.gauge-num { position: absolute; right: 6px; top: -2px; font-size: .75rem; text-shadow: 1px 1px 0 #000; }
+
+/* 1回の操作の残り時間（5秒） */
+.dragbar {
+  position: absolute; left: 0; top: 0; height: 6px; width: 100%; background: #ffd34d; z-index: 20;
+  transform-origin: left; animation: dragbar 5s linear forwards; pointer-events: none;
+}
+@keyframes dragbar { from { scale: 1 1; background: #6bff7a; } to { scale: 0 1; background: #ff5a5a; } }
+
+/* アイテム枠（1行5列） */
+.items { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.item {
+  position: relative; aspect-ratio: 1; background: #1a130d; border: 2px solid #5a4430; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.item img { width: 78%; height: 78%; object-fit: contain; }
+.item-num { position: absolute; right: 2px; bottom: 0; font-size: .8rem; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
+
+/* タイマーゲージ上の表示 */
+.timetag {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .85rem; color: #fff;
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; pointer-events: none;
+}
+/* ジョッキの手前に、少し斜めにレインボーのFEVER! */
+.fever-text {
+  position: absolute; left: calc(50% - 10px); top: 42%; z-index: 5; translate: -50% -50%; rotate: -12deg; white-space: nowrap;
+  font-size: 2rem; letter-spacing: 1px; pointer-events: none; animation: feverbounce .5s infinite alternate;
+}
+.fever-text span { display: inline-block; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
+@keyframes feverbounce { to { scale: 1.12; } }
+
+.timefill.tsuki { background: linear-gradient(90deg, #2f9e44, #6bd36b); }
+.timefill.shime { background: linear-gradient(90deg, #c62828, #f0524f); }
+
+/* 数字は元のドット文字 */
+.digits, .timenum, .item-num, .gauge-num, .pop, .combo, .num, .line b { font-family: 'DotGothic16', sans-serif; font-weight: 400; }
+.diff, .btn { font-family: inherit; }
+
+.pt-icon .row-icon { width: 41px; height: 41px; }
+
+.item-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.item-wrap .item { width: 100%; }
+.item-label { font-size: .62rem; font-weight: 700; white-space: nowrap; line-height: 1; }
+
+.item.empty img, .item.locked img { opacity: .35; }
+
+.diff-label { text-align: center; font-weight: 900; font-size: 1.05rem; margin-bottom: 2px; }
+.btn.start { font-size: 1.82rem; }
+
+.item-wrap { cursor: pointer; }
+.item.armed { border-color: #ffd34d; box-shadow: 0 0 10px #ffd34d; animation: blink .4s infinite alternate; }
+
+.countdown {
+  font-size: 12rem; line-height: 1; color: #fff; text-shadow: 0 0 24px #ffe27a, 4px 4px 0 #7a2a00;
+  font-family: 'Bungee', sans-serif; font-weight: 400; animation: countpop 1s ease-out forwards;
+}
+@keyframes countpop { 0% { scale: 1.8; opacity: 0; } 25% { scale: 1; opacity: 1; } 80% { opacity: 1; } 100% { scale: .85; opacity: 0; } }
+
+.diff.easy .sub { color: #138a2e; }
+.diff.hard .sub { color: #d01f1f; }
+.diff .sub { font-weight: 900; }
+.diff.normal .sub { color: #1f4fd0; }
+
+/* 90%：下を軸に、メトロノームのように左右5度 */
+.gero-icon.metronome { transform-origin: 50% 100%; animation: metronome 1s ease-in-out infinite alternate; }
+@keyframes metronome { from { rotate: -5deg; } to { rotate: 5deg; } }
+/* 100-1：小刻みに左右へゆれる */
+.gero-icon.shake { animation: geroShake .08s linear infinite alternate; }
+@keyframes geroShake { from { translate: -2px 0; } to { translate: 2px 0; } }
+
+/* 結果画面：フィーバー回数とげろげろ100%回数 */
+.stats { display: flex; gap: 28px; align-items: center; justify-content: center; }
+.stat { display: flex; align-items: center; gap: 6px; font-size: 1.8rem; }
+.stat img { width: 56px; height: 56px; object-fit: contain; image-rendering: auto; }
+
+/* 決定・キャンセルボタン：右下に影 */
+.btn { box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.55); }
+.btn:active { box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.55); translate: 3px 3px; }
+
+/* モード選択ボタンにも右下の影（選択中は金色の光と併用） */
+.diff { box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.55); }
+.diff.on { box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.55), 0 0 12px #ffd34d; }
+.diff:active { box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.55); translate: 3px 3px; }
+
+/* 単位（s / ms）は数字とは別のフォントにして、8と見間違えないようにする */
+.timenum .unit { font-family: 'Zen Maru Gothic', sans-serif; font-weight: 700; font-size: .85em; }
+
+/* 減点：大きめの赤字で、しばらく表示してから消える */
+.pop.minus { font-size: 1.5rem; -webkit-text-stroke: 1px #000; animation-name: popHold; animation-timing-function: ease-out; }
+@keyframes popHold {
+  0% { opacity: 0; transform: translateY(14px); }
+  10% { opacity: 1; transform: translateY(0); }
+  75% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+/* 加点：「+」が読み取れるよう、大きさと縁取りを減点にそろえる */
+.pop.plus { font-size: 1.3rem; -webkit-text-stroke: 1px #000; }
+
+/* ポップ表示を濃く：すぐにはっきり出て、しばらく保ってから消える */
+.pop { z-index: 5; font-weight: 700; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
+.pop.plus { color: #5dff6e; animation-name: popHold; animation-timing-function: ease-out; }
+.pop.minus { color: #ff4040; }
+
+/* 縁取りは文字の後ろに描く（色が黒く潰れないように） */
+.pop, .pop.plus, .pop.minus { -webkit-text-stroke: 4px #000; paint-order: stroke fill; text-shadow: none; }
+
+/* 黒い縁取りはなし */
+.pop, .pop.plus, .pop.minus { -webkit-text-stroke: 0; paint-order: normal; text-shadow: none; }
+
+/* フィーバー中：画面全体を金色〜虹色の光で包む */
+.fever-screen {
+  position: fixed; inset: 0; z-index: 3; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(255, 170, 0, 0.35) 100%);
+  box-shadow: inset 0 0 40px 8px #ff3b3b, inset 0 0 90px 20px rgba(255, 211, 77, 0.55);
+  animation: feverScreen 1.2s linear infinite;
+}
+@keyframes feverScreen {
+  0%   { filter: hue-rotate(0deg) brightness(1); }
+  50%  { filter: hue-rotate(180deg) brightness(1.35); }
+  100% { filter: hue-rotate(360deg) brightness(1); }
+}
+.game.fever .board { border-color: #ffd34d; animation: boardGlow .5s ease-in-out infinite alternate; }
+@keyframes boardGlow {
+  from { box-shadow: 0 0 10px 2px #ffd34d; }
+  to   { box-shadow: 0 0 26px 8px #ff7ad9; }
+}
+
+/* フィーバー演出を少し控えめに */
+.fever-screen {
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(255, 170, 0, 0.16) 100%);
+  box-shadow: inset 0 0 30px 4px rgba(255, 59, 59, 0.6), inset 0 0 70px 12px rgba(255, 211, 77, 0.28);
+  animation-name: feverScreenSoft;
+}
+@keyframes feverScreenSoft {
+  0%   { filter: hue-rotate(0deg) brightness(.9); }
+  50%  { filter: hue-rotate(180deg) brightness(1.05); }
+  100% { filter: hue-rotate(360deg) brightness(.9); }
+}
+.game.fever .board { animation-name: boardGlowSoft; }
+@keyframes boardGlowSoft {
+  from { box-shadow: 0 0 6px 1px rgba(255, 211, 77, 0.7); }
+  to   { box-shadow: 0 0 14px 4px rgba(255, 122, 217, 0.7); }
+}
+
+/* ヘッダー：通常の木目板を背景に、黒字 */
+.app-header {
+  position: sticky; top: 0; z-index: 30; height: 66px; display: flex; align-items: center; justify-content: center;
+  background: url('/images/木目板（通常）.jpg') center / cover; color: #000; font-weight: 900; font-size: 1.25rem; letter-spacing: 1px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.55);
+}
+.screen.with-header { min-height: calc(100dvh - 66px); }
+.app-header + .game { min-height: calc(100dvh - 66px); }
+
+/* ハンバーガーメニュー */
+.app-header { position: sticky; }
+.burger {
+  position: absolute; right: 8px; top: 50%; translate: 0 -50%; width: 40px; height: 36px; padding: 0; border: 0;
+  background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+}
+.burger span { display: block; width: 24px; height: 3px; background: #000; border-radius: 2px; }
+.menu-back { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, 0.55); }
+.menu-back.center { display: flex; align-items: center; justify-content: center; }
+.menu {
+  position: absolute; top: 66px; right: 0; width: min(280px, 86vw); max-height: calc(100dvh - 66px); overflow: auto;
+  background: #1a130d; border-left: 3px solid #5a4430; border-bottom: 3px solid #5a4430; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+  box-shadow: -4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+.menu-group { display: flex; flex-direction: column; gap: 6px; }
+.menu-head { font-weight: 900; color: #ffd34d; padding: 2px 4px; }
+.menu-item {
+  font: inherit; font-weight: 900; font-size: 1.05rem; color: #fff; text-align: left; padding: 12px 14px; border: 0; border-radius: 8px; cursor: pointer;
+  background: url('/images/木目板（黒）.jpg') center / cover; box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.55);
+}
+.menu-item.sub { margin-left: 14px; font-size: .95rem; }
+.menu-item:active { box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.55); translate: 2px 2px; }
+.panel {
+  width: min(300px, 86vw); background: #1a130d; border: 3px solid #5a4430; border-radius: 10px; padding: 18px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px; box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.55);
+}
+.panel h2 { margin: 0; color: #ffd34d; font-size: 1.3rem; }
+.panel p { margin: 0; }
+.btn.small { font-size: 1rem; padding: 10px 28px; }
+
+/* 三本線の下に menu の文字 */
+.burger { gap: 4px; height: 40px; }
+.burger em { font-style: normal; font-size: .6rem; line-height: 1; font-weight: 900; color: #000; letter-spacing: .5px; margin-top: 1px; }
+
+/* 三本線は両端を完全な丸みに */
+.burger span { height: 4px; border-radius: 999px; }
+
+/* Takoyaki Cascade と同じ：☰ の文字を枠線付きボタンに入れ、開くと ✕ に変わる */
+.burger {
+  right: 8px; width: auto; height: auto; padding: 3px 12px 3px; gap: 1px;
+  border: 1.5px solid #000; border-radius: 6px; background: transparent;
+}
+.burger-glyph { font-size: 1.3rem; line-height: 1; color: #000; font-weight: 400; }
+.burger em { font-size: .55rem; margin-top: 0; }
+
+/* ヘッダーとハンバーガーボタンを1.5倍（展開メニューの大きさはそのまま） */
+.burger { right: 12px; padding: 5px 18px 5px; gap: 2px; border-width: 2px; border-radius: 9px; }
+.burger-glyph { font-size: 1.95rem; }
+.burger em { font-size: .83rem; }
+
+/* メニュー項目のアイコン（Takoyaki Cascade と同じ画像） */
+.menu-icon { width: 1.3rem; height: 1.3rem; object-fit: contain; flex-shrink: 0; image-rendering: pixelated; }
+.menu-item, .menu-head { display: flex; align-items: center; gap: 8px; }
+
+/* ハンバーガーボタンを、丸い三本線＋menu の形に戻す（1.5倍の大きさ） */
+.burger {
+  right: 12px; width: 60px; height: 60px; padding: 0; gap: 6px; border: 0; border-radius: 0; background: transparent;
+}
+.burger span { width: 36px; height: 6px; border-radius: 999px; background: #000; }
+.burger em { font-size: .9rem; margin-top: 1px; }
+
+/* 三本線の太さをそろえる（縮まないよう固定） */
+.burger span { flex: 0 0 6px; min-height: 6px; max-height: 6px; box-sizing: content-box; }
+.burger { top: 3px; translate: none; justify-content: flex-start; padding-top: 6px; box-sizing: border-box; }
+.burger em { flex: none; }
+
+/* 中断ボタン（ハンバーガーと同じ位置）：縦二本線＋中断 */
+.burger.pause { flex-direction: column; }
+.burger.pause { display: flex; }
+.burger.pause:disabled { opacity: .35; cursor: default; }
+.burger.pause .bars { display: flex; gap: 10px; margin-top: 2px; }
+.burger.pause .bars i { display: block; width: 8px; height: 30px; background: #000; border-radius: 999px; }
+/* 中断中：ヘッダー以外を覆う黒い半透明のレイヤー */
+.pause-layer {
+  position: fixed; left: 0; right: 0; top: 66px; bottom: 0; z-index: 35; background: rgba(0, 0, 0, 0.7);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+
+/* 中断ボタン：角丸、黒い木目板の背景に白文字 */
+.burger.pause {
+  background: url('/images/木目板（黒）.jpg') center / cover; border-radius: 12px; box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.55);
+}
+.burger.pause .bars i { background: #fff; }
+.burger.pause em { color: #fff; }
+
+/* 中断ボタンを0.8倍に縮小（60px → 48px） */
+.burger.pause { width: 48px; height: 48px; top: 9px; padding-top: 5px; gap: 3px; border-radius: 10px; }
+.burger.pause .bars { gap: 8px; margin-top: 1px; }
+.burger.pause .bars i { width: 6px; height: 24px; }
+.burger.pause em { font-size: .72rem; }
+
+/* ヘッダーのタイトルはロゴ画像 */
+.header-logo { height: 58px; width: auto; display: block; }
+/* タイトル画面の見出し：文字だけ消し、場所は残す（下の要素を動かさない） */
+.screen h1.ghost { visibility: hidden; }
+
+/* ホーム（タイトル）画面の要素全体を50px上へ */
+.screen.home { translate: 0 -50px; }
+
+/* スマホ（タッチ操作）を横向きにして、高さが足りないときの案内。PCや縦向きには影響しない */
+.landscape-lock-overlay { display: none; }
+@media (orientation: landscape) and (hover: none) and (pointer: coarse) and (max-height: 620px) {
+  .landscape-lock-overlay {
+    display: flex; position: fixed; inset: 0; z-index: 99999; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; background: #0f0b08; color: #fff; text-align: center; padding: 24px;
+  }
+  .landscape-lock-icon { animation: landscapeLockRotate 1.6s ease-in-out infinite; }
+  .landscape-lock-icon img { height: 3.5rem; width: auto; display: block; image-rendering: pixelated; }
+  .landscape-lock-text { margin: 0; font-size: 1.2rem; font-weight: 900; }
+}
+@keyframes landscapeLockRotate { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
+
+/* ヘッダーは黒い木目板。ハンバーガー（線・menu文字）は白 */
+.app-header { background: url('/images/木目板（黒）.jpg') center / cover; color: #fff; }
+.burger:not(.pause) span { background: #fff; }
+.burger:not(.pause) em { color: #fff; }
+
+/* ---- 虫 ---- */
+.piece .pic { position: relative; }
+.skull { position: absolute; right: -2px; bottom: -2px; width: 34%; height: 34%; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
+.bug {
+  position: absolute; left: 0; top: 0; width: var(--cell); height: var(--cell); z-index: 6; pointer-events: none;
+  display: flex; align-items: center; justify-content: center; transition: transform .45s ease-in-out;
+}
+.bug img { width: 72%; height: 72%; object-fit: contain; image-rendering: pixelated; animation: bugWiggle .35s ease-in-out infinite alternate; }
+@keyframes bugWiggle { from { translate: -1px 0; } to { translate: 1px 1px; } }
+.bug.target img { animation: bugBlink .3s linear infinite alternate; }
+@keyframes bugBlink {
+  from { filter: drop-shadow(0 0 5px rgba(150, 70, 230, 0.7)); }
+  to { filter: drop-shadow(0 0 6px #ff0000) sepia(1) saturate(9) hue-rotate(-40deg); }
+}
+.bug.dying img { width: 100%; height: 100%; animation: none; }
+
+/* どくろは右下に小さく */
+.skull { width: 22%; height: 22%; right: 1px; bottom: 1px; }
+
+/* どくろは右下に小さく（.pic img の100%指定より優先させる） */
+.pic img.skull { position: absolute; right: 1px; bottom: 1px; width: 24%; height: 24%; max-width: 24%; max-height: 24%; }
+
+.pic img.skull { width: 34%; height: 34%; max-width: 34%; max-height: 34%; }
+.pic img.skull { width: 40%; height: 40%; max-width: 40%; max-height: 40%; }
+.pic img.skull { width: 46%; height: 46%; max-width: 46%; max-height: 46%; }
+.pic img.skull { width: 50%; height: 50%; max-width: 50%; max-height: 50%; }
+
+/* 準備中などのパネルを150px上へ */
+.panel { translate: 0 -150px; }
+
+/* タイマーの数字の上に出る時間の増減（毒で減ったとき） */
+.time-wrap { position: relative; display: flex; justify-content: flex-end; }
+.time-pops { position: absolute; right: 0; bottom: 100%; display: flex; flex-direction: column-reverse; align-items: flex-end; pointer-events: none; z-index: 5; }
+.time-pop { color: #ff4040; font-size: 1.2rem; font-weight: 700; white-space: nowrap; animation: popHold 1.5s ease-out forwards; }
+
+/* ケムリは小さい状態から広がる（回転は画像ごとにランダム） */
+.bug.dying img { animation: smokeGrow .5s ease-out forwards; }
+@keyframes smokeGrow { from { scale: 0.2; } to { scale: 1.1; } }
+
+/* ---- マニュアル（Takoyaki Cascade と同じ構成：目次＋各項目）。木目板（通常）の背景に黒字 ---- */
+.manual-box {
+  width: min(480px, 92vw); max-height: 82dvh; display: flex; flex-direction: column; padding: 14px; color: #000;
+  background: url('/images/木目板（通常）.jpg') center / cover; border: 3px solid #3a2a18; border-radius: 12px;
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.55);
+}
+.manual-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 2px solid rgba(0, 0, 0, 0.35); flex-shrink: 0; }
+.manual-title { font-size: 1.15rem; font-weight: 900; display: inline-flex; align-items: center; gap: 6px; }
+.manual-title-icon { width: 1.3rem; height: 1.3rem; object-fit: contain; image-rendering: pixelated; }
+.manual-toc-link { margin-left: auto; font-size: .75rem; font-weight: 700; color: #000; text-decoration: none; border: 1.5px solid #000; border-radius: 6px; padding: 4px 8px; white-space: nowrap; background: rgba(255, 255, 255, 0.35); }
+.manual-close { width: 30px; height: 30px; flex: none; border: 1.5px solid #000; border-radius: 6px; background: rgba(255, 255, 255, 0.35); color: #000; font-size: .95rem; font-weight: 700; cursor: pointer; }
+.manual-body { overflow-y: auto; padding-right: 4px; scroll-behavior: smooth; }
+.manual-toc { background: rgba(255, 255, 255, 0.4); border: 1.5px solid rgba(0, 0, 0, 0.45); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+.manual-toc-title { font-size: .85rem; font-weight: 900; margin-bottom: 6px; letter-spacing: 1px; }
+.manual-toc-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.manual-toc-list a { display: flex; align-items: baseline; gap: 6px; padding: 7px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.45); color: #000; text-decoration: none; font-size: .8rem; font-weight: 700; line-height: 1.35; }
+.manual-toc-num { flex: none; min-width: 1.5em; font-size: .72rem; font-weight: 900; }
+@media (max-width: 480px) { .manual-toc-list { grid-template-columns: 1fr; } }
+.manual-section { background: rgba(255, 255, 255, 0.4); border: 1.5px solid rgba(0, 0, 0, 0.35); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: .88rem; line-height: 1.65; scroll-margin-top: 4px; }
+.manual-section h3 { margin: 0 0 6px; font-size: 1rem; font-weight: 900; border-bottom: 2px solid rgba(0, 0, 0, 0.35); padding-bottom: 4px; }
+.manual-section ul { margin: 0; padding-left: 1.2em; }
+.manual-section li { margin-bottom: 4px; }
+.manual-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .82rem; }
+.manual-table th, .manual-table td { border: 1px solid rgba(0, 0, 0, 0.4); padding: 4px 6px; text-align: left; vertical-align: middle; }
+.manual-table th { background: rgba(255, 255, 255, 0.45); font-weight: 900; white-space: nowrap; }
+.manual-table.wide td, .manual-table.wide thead th { text-align: center; }
+.manual-icon { width: 1.2rem; height: 1.2rem; object-fit: contain; vertical-align: middle; image-rendering: pixelated; }
+
+/* メニュー展開中：三本線が角丸の ✕ に変わる。暗い幕はヘッダーの下から始め、ボタンの白は薄くしない */
+.menu-back.drawer { top: 66px; }
+.burger span { transition: transform .2s ease, opacity .2s ease; }
+.burger.open span:nth-child(1) { transform: translateY(12px) rotate(45deg); }
+.burger.open span:nth-child(2) { opacity: 0; }
+.burger.open span:nth-child(3) { transform: translateY(-12px) rotate(-45deg); }
+
+/* 幕をヘッダーの下から始めたので、メニューは幕の上端に合わせる */
+.menu-back.drawer .menu { top: 0; max-height: 100%; }
+
+/* 中断中の「再開」「HOMEに戻る」を150px上へ */
+.pause-layer { padding-bottom: 300px; }
+
+/* 結果画面の要素全体を150px上へ */
+.screen.result { translate: 0 -150px; }
+
+/* ホーム画面を、さらに50px上へ（合計100px） */
+.screen.home { translate: 0 -100px; }
+
+/* マニュアル：点数の計算式 */
+.manual-formula { margin: 4px 0 8px; padding: 8px 10px; background: rgba(255, 255, 255, 0.55); border: 1.5px dashed rgba(0, 0, 0, 0.5); border-radius: 8px; line-height: 1.8; }
+
+/* ---- ホームのログイン案内（「3つ以上そろえて〜」の上） ---- */
+.home-account { display: flex; flex-direction: column; align-items: center; gap: 8px; font-weight: 900; min-height: 60px; justify-content: center; }
+.btn.small { font-size: 1rem; padding: 8px 22px; }
+.link { background: none; border: 0; color: #ffd34d; text-decoration: underline; font: inherit; font-weight: 900; cursor: pointer; padding: 0 4px; }
+.submit-line { min-height: 1.6em; }
+
+/* ---- アカウント・ランキングのパネル ---- */
+.sheet {
+  width: min(380px, 92vw); max-height: 86dvh; display: flex; flex-direction: column; color: #fff;
+  background: #1a130d; border: 3px solid #5a4430; border-radius: 12px; box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.55);
+}
+.sheet.wide { width: min(460px, 94vw); }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 8px; border-bottom: 2px solid #5a4430; flex: none; }
+.sheet-head h2 { margin: 0; font-size: 1.2rem; color: #ffd34d; }
+.sheet-close { background: transparent; color: #fff; border-color: #fff; }
+.sheet-body { overflow-y: auto; padding: 12px 14px 16px; }
+.sheet-body h3 { margin: 16px 0 6px; font-size: 1rem; color: #ffd34d; }
+.sheet-body h3.danger { color: #ff6b6b; }
+.sheet-text { line-height: 1.6; font-size: .9rem; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.field-label { font-size: .85rem; font-weight: 700; }
+.field-hint { color: #bda98a; font-size: .72rem; }
+.field input, .field select, .inline input {
+  font: inherit; font-size: 1rem; padding: 9px 10px; border-radius: 8px; border: 2px solid #5a4430; background: #fff; color: #000; width: 100%;
+}
+.inline { display: flex; gap: 8px; align-items: center; }
+.inline.center { justify-content: center; }
+.inline input { flex: 1; }
+.form-error { color: #ff6b6b; font-weight: 700; font-size: .88rem; margin: 6px 0; }
+.form-ok { color: #6bff7a; font-weight: 700; font-size: .88rem; margin: 6px 0; }
+.warn { color: #ffd34d; font-size: .8rem; line-height: 1.5; }
+.mock-note { color: #bda98a; font-size: .72rem; margin-top: 12px; }
+.sheet-links { display: flex; justify-content: space-between; margin-top: 12px; }
+.sheet-links button { background: none; border: 0; color: #ffd34d; text-decoration: underline; font: inherit; font-size: .88rem; font-weight: 700; cursor: pointer; }
+.stat-box { background: rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px; }
+.stat-line { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; align-items: center; }
+.stat-line img, .rank-table img { width: 1.3rem; height: 1.3rem; object-fit: contain; vertical-align: middle; image-rendering: auto; }
+.stat-line span { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; }
+
+/* ランキング */
+.tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.tabs button { flex: 1; font: inherit; font-weight: 900; color: #fff; background: #3a2a18; border: 2px solid #5a4430; border-radius: 8px; padding: 8px 4px; cursor: pointer; }
+.tabs button.on { background: #ffd34d; color: #000; border-color: #ffd34d; }
+.tabs.sub button { font-size: .85rem; padding: 6px 2px; }
+.rank-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.rank-table th, .rank-table td { padding: 5px 4px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
+.rank-table th { color: #bda98a; font-size: .75rem; text-align: right; }
+.rank-table th:nth-child(1), .rank-table th:nth-child(2) { text-align: left; }
+.rank-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.rank-table td.rank { width: 2.4em; font-weight: 900; color: #ffd34d; }
+.rank-table td.name small { color: #bda98a; font-size: .7rem; }
+.rank-table.small { font-size: .82rem; }
+.rank-table tr.mine td { color: #fff; font-weight: 900; animation: mineBlink .7s ease-in-out infinite alternate; }
+@keyframes mineBlink { from { background: rgba(255, 40, 40, 0.15); color: #fff; } to { background: rgba(255, 40, 40, 0.65); color: #ffb0b0; } }
+.me-box { margin-top: 12px; border-top: 2px dashed #5a4430; padding-top: 8px; }
+.me-title { font-weight: 900; color: #ffd34d; margin-bottom: 4px; }
+
+/* ゲスト表示は赤字 */
+.home-account .guest-text { color: #ff4040; }
+
+/* ===== 各種画面の配色を統一：背景＝木目（通常）、確定＝木目（白）、キャンセル・戻る＝木目（黒） ===== */
+.sheet, .menu {
+  color: #000; background: url('/images/木目板（通常）.jpg') center / cover; border-color: #3a2a18;
+}
+.sheet-head { border-bottom-color: rgba(0, 0, 0, 0.4); }
+.sheet-head h2, .sheet-body h3, .menu-head, .me-title { color: #000; }
+.sheet-body h3.danger { color: #a30000; }
+.sheet-close { background: rgba(255, 255, 255, 0.35); color: #000; border-color: #000; }
+.field-label { color: #000; }
+.field-hint, .mock-note { color: #4a3520; }
+.warn { color: #8a1c00; font-weight: 700; }
+.form-error { color: #b00000; }
+.form-ok { color: #0a6b1a; }
+.sheet-links button, .link { color: #000; }
+.stat-box { background: rgba(255, 255, 255, 0.45); }
+.field input, .field select, .inline input { border-color: #3a2a18; }
+.me-box { border-top-color: rgba(0, 0, 0, 0.45); }
+
+/* タブ：選択中＝白木目（確定色）、それ以外は半透明の白 */
+.tabs button { background: rgba(255, 255, 255, 0.4); color: #000; border-color: #3a2a18; }
+.tabs button.on { background: url('/images/木目板（白）.jpg') center / cover; border-color: #000; box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.5); }
+
+/* 順位表 */
+.rank-table th, .rank-table td { border-bottom-color: rgba(0, 0, 0, 0.25); }
+.rank-table th { color: #4a3520; }
+.rank-table td.rank { color: #000; }
+.rank-table td.name small { color: #4a3520; }
+.rank-table tr.mine td { animation-name: mineBlinkLight; }
+@keyframes mineBlinkLight { from { background: rgba(255, 40, 40, 0.15); color: #000; } to { background: rgba(255, 40, 40, 0.7); color: #fff; } }
+
+/* メニュー（ハンバーガー）の外枠も木目。項目は黒木目＋白字のまま */
+.menu { border-left-color: #3a2a18; border-bottom-color: #3a2a18; }
+.back-row { margin-top: 12px; }
+
+/* ✕ はキャンセル扱い：木目（黒）に白字 */
+.manual-close, .sheet-close {
+  background: url('/images/木目板（黒）.jpg') center / cover; color: #fff; border: 1.5px solid #000; border-radius: 8px;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.5);
+}
+.manual-close:active, .sheet-close:active { box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5); translate: 2px 2px; }
+
+/* 確定ボタンは、パネルの左右中央にそろえる */
+.sheet-body > .btn, .sheet-body form > .btn { display: block; margin-left: auto; margin-right: auto; }
+
+/* 決定ボタンは文字の右に緑の ▶、キャンセル・戻るボタンは文字の左に赤い ◀ */
+.btn::after { content: ' ▶'; color: #14a02e; white-space: pre; }
+.btn.cancel::after { content: none; }
+.btn.cancel::before { content: '◀ '; color: #ff3b3b; white-space: pre; }
+
+/* ▶ ◀ を、角を丸めた三角形の図形に（文字ではなく、色を付けた図形を切り抜いて描く） */
+.btn::after, .btn.cancel::before {
+  display: inline-block; width: .8em; height: .8em; vertical-align: -0.06em; white-space: normal;
+  -webkit-mask: var(--tri) center / contain no-repeat; mask: var(--tri) center / contain no-repeat;
+}
+.btn::after {
+  content: ''; margin-left: .45em; background: #14a02e;
+  --tri: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 4 L20 12 L6 20 Z' fill='black' stroke='black' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.btn.cancel::after { content: none; }
+.btn.cancel::before {
+  content: ''; margin-right: .45em; background: #ff3b3b;
+  --tri: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18 4 L4 12 L18 20 Z' fill='black' stroke='black' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ランキングはすべて太字。pt の単位は数字の右に小さく */
+.sheet .rank-table th, .sheet .rank-table td, .sheet .rank-table small { font-weight: 900; }
+.rank-table td.num small { margin-left: 2px; font-size: .7em; }
+
+/* 1〜3位の王冠 */
+.rank-table td.rank .crown { width: 1.7rem; height: 1.7rem; object-fit: contain; vertical-align: middle; image-rendering: pixelated; }
+.rank-table td.rank { width: 2.8em; }
+
+/* 順位の列は、王冠も数字も同じ中央の軸にそろえる */
+.rank-table th:nth-child(1), .rank-table td.rank { text-align: center; }
+.rank-table td.rank { padding-left: 0; padding-right: 0; }
+
+/* ---- ゲーム設定 ---- */
+.set-icon { width: 1.3rem; height: 1.3rem; object-fit: contain; vertical-align: middle; margin-right: 2px; image-rendering: pixelated; }
+.set-section { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 2px solid rgba(0, 0, 0, 0.3); }
+.set-section h3 { margin: 0 0 4px; }
+.volume-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+.volume-row label { flex: none; width: 5.6em; font-weight: 900; font-size: .9rem; }
+.volume-slider { flex: 1; min-width: 0; accent-color: #3a2a18; height: 28px; }
+.volume-value { flex: none; width: 3.2em; text-align: right; font-weight: 900; font-variant-numeric: tabular-nums; }
+.toggle-row { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.toggle-btn {
+  font: inherit; font-weight: 900; min-width: 4.5em; padding: 8px 14px; color: #000; cursor: pointer;
+  background: rgba(255, 255, 255, 0.4); border: 2px solid #3a2a18; border-radius: 8px;
+}
+.toggle-btn.active { background: url('/images/木目板（白）.jpg') center / cover; border-color: #000; box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.5); }
+.set-buttons { margin-top: 12px; gap: 16px; }
+
+/* ---- 省電力モード：光る・点滅・ゆれる演出を止める ---- */
+body.power-save-mode .fever-screen { display: none; }
+body.power-save-mode .game.fever .board,
+body.power-save-mode .fev,
+body.power-save-mode .fever-text,
+body.power-save-mode .bug img,
+body.power-save-mode .bug.target img,
+body.power-save-mode .gero-icon.metronome,
+body.power-save-mode .gero-icon.shake,
+body.power-save-mode .landscape-lock-icon,
+body.power-save-mode .item.armed,
+body.power-save-mode .rank-table tr.mine td,
+body.power-save-mode .piece.glow .pic { animation: none !important; }
+body.power-save-mode .rank-table tr.mine td { background: rgba(255, 40, 40, 0.55); color: #fff; }
+body.power-save-mode .bug.target img { filter: drop-shadow(0 0 4px #ff0000) sepia(1) saturate(9) hue-rotate(-40deg); }
+body.power-save-mode .piece.glow .pic { filter: none; }
+
+/* 「ゲストとしてプレイ中」を2倍の大きさに（幅の狭い画面ではにじまないよう、画面幅に合わせて縮める） */
+.home-account .guest-text { font-size: min(2rem, 8.8vw); line-height: 1.2; white-space: nowrap; }
+.home-account .guest-text { font-size: min(1.5rem, 6.6vw); }
+.home-account .guest-text { font-size: min(1.3rem, 5.8vw); }
+
+/* ゲーム設定だけ：リセット＝木目（黒）で三角なし／保存＝木目（白）で緑の ◀ を左に */
+.btn.set-reset { color: #fff; background-image: url('/images/木目板（黒）.jpg'); }
+.btn.set-reset::after, .btn.set-reset::before { content: none; }
+.btn.set-save::after { content: none; }
+.btn.set-save::before {
+  content: ''; display: inline-block; width: .8em; height: .8em; margin-right: .45em; vertical-align: -0.06em; background: #14a02e;
+  -webkit-mask: var(--tri) center / contain no-repeat; mask: var(--tri) center / contain no-repeat;
+  --tri: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18 4 L4 12 L18 20 Z' fill='black' stroke='black' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ハンバーガーメニューの展開部分：左下を角丸に */
+.menu { border-bottom-left-radius: 16px; }
+
+/* メニュー外枠の黒い影を細く（4px → 2px） */
+.menu { box-shadow: -2px 2px 0 rgba(0, 0, 0, 0.5); }
+.menu { box-shadow: -1px 1px 0 rgba(0, 0, 0, 0.5); }
+
+/* ランキングの難易度表示：しらふ＝緑、ほろ酔い＝青、泥酔＝赤 */
+.sheet .rank-table td.name small.diff-tag { font-weight: 900; font-size: .75em; }
+.rank-table small.diff-tag.easy { color: #138a2e; }
+.rank-table small.diff-tag.normal { color: #1f4fd0; }
+.rank-table small.diff-tag.hard { color: #d01f1f; }
+
+/* げろげろゲージの下の見出し */
+.gauge-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gauge-wrap .gauge { flex: none; width: 100%; }
+.gauge-label { font-size: .75rem; font-weight: 900; text-align: center; line-height: 1; }
+
+/* ゲージと見出しだけを3px下へ（左の画像・右のビールは動かさない） */
+.gauge-wrap { position: relative; top: 3px; }
+
+/* ポイント画像の SCORE 文字は、ゲージの見出しと同じ色に */
+.pt-icon i { color: var(--fg); -webkit-text-stroke: 1px currentColor; }
+
+/* ヘッダーとメニューの境目に影の線（ヘッダー下の影と同じ濃さ・太さ） */
+.menu { box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.55), -1px 1px 0 rgba(0, 0, 0, 0.5); }
+.menu { box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.9), -1px 1px 0 rgba(0, 0, 0, 0.5); }
+
+/* ホーム画面を、さらに50px上へ（合計150px） */
+.screen.home { translate: 0 -150px; }
+
+/* 各パネル（ログイン・再設定・ランキング・設定・マニュアル）は、中身の量に関わらず、上から同じ位置に出す */
+.menu-back.center { align-items: flex-start; padding-top: 84px; }
+.sheet { max-height: calc(100dvh - 100px); }
+.manual-box { max-height: calc(100dvh - 100px); }
+
+/* ランキングの自分の行：行の背景ではなく、文字だけを赤く点滅（間隔は同じ0.7秒） */
+.sheet .rank-table tr.mine td { background: none; animation: mineTextBlink .7s ease-in-out infinite alternate; }
+@keyframes mineTextBlink { from { color: #000; } to { color: #ff1a1a; } }
+body.power-save-mode .sheet .rank-table tr.mine td { background: none; color: #e00000; animation: none !important; }
+
+/* ===== ランキング全体を大きく ===== */
+.sheet.big { width: min(560px, 97vw); }
+.sheet.big .sheet-head h2 { font-size: 1.45rem; }
+.sheet.big .tabs button { font-size: 1.1rem; padding: 10px 4px; }
+.sheet.big .tabs.sub button { font-size: .98rem; padding: 8px 2px; }
+.sheet.big .rank-table { font-size: 1.05rem; }
+.sheet.big .rank-table th, .sheet.big .rank-table td { padding: 8px 4px; }
+.sheet.big .rank-table th { font-size: .8rem; }
+.sheet.big .rank-table td.rank .crown { width: 2.1rem; height: 2.1rem; }
+.sheet.big .rank-table td.rank { width: 3em; font-size: 1.15rem; }
+.sheet.big .rank-table th img { width: 1.5rem; height: 1.5rem; }
+.sheet.big .stat-line span { font-size: 1rem; }
+.sheet.big .stat-line img { width: 1.6rem; height: 1.6rem; }
+.my-name { font-size: 1.25rem; font-weight: 900; margin-bottom: 4px; }
+
+/* 日付：小さく2行（上がYYYY、下がMM/DD） */
+.rank-table td.date { text-align: right; font-size: .62rem; line-height: 1.15; color: #4a3520; font-weight: 900; white-space: nowrap; }
+.rank-table td.date span { display: block; }
+.rank-table th:last-child { text-align: right; }
+.sheet .rank-table tr.mine td.date { animation: none; color: #4a3520; }
+
+/* 難易度の表示は、名前の下に1行で（折り返さない） */
+.rank-table td.name small.diff-tag { display: block; white-space: nowrap; line-height: 1.2; margin-top: 1px; }
+.rank-table td.name { line-height: 1.25; }
+
+/* タイムアップ後はアイテムをロック（押せない・グレー表示） */
+.items.locked { filter: grayscale(.85) brightness(.8); pointer-events: none; }
+
+/* ホーム画面・結果画面を、75px下へ（ホーム: -150px → -75px、結果: -150px → -75px） */
+.screen.home { translate: 0 -65px; }
+.screen.result { translate: 0 -65px; }
+
+/* マニュアルのカード（目次・各項目）は、半透明ではなく木目（白）にする */
+.manual-toc, .manual-section, .manual-formula {
+  background: url('/images/木目板（白）.jpg') center / cover;
+}
+.manual-toc-list a {
+  background: url('/images/木目板（白）.jpg') center / cover;
+  border: 1.5px solid rgba(0, 0, 0, 0.4);
+}
+.manual-table th { background: rgba(0, 0, 0, 0.07); }
+
+/* ハンバーガーを ✕ にするとき、真ん中の棒は、徐々にではなく即座に消す（閉じるときだけ、ゆっくり戻る） */
+.burger.open span:nth-child(2) { opacity: 0; transition: none; }
+
+/* ===== 称号 ===== */
+/* ランキング：称号は、名前の上に、濃いグレーの小さい文字で */
+.rank-table td.name .title-tag { display: block; color: #4d4d4d; font-size: .62rem; font-weight: 900; line-height: 1.1; letter-spacing: .3px; }
+.rank-table td.name > span { display: block; }
+.sheet .rank-table tr.mine td.name .title-tag { animation: none; color: #4d4d4d; } /* 称号は、点滅させない */
+/* 難易度（しらふ・ほろ酔い…）は、スコアの下に */
+.rank-table td.num small.diff-tag { display: block; margin: 0 0 1px; font-size: .62rem; line-height: 1.1; white-space: nowrap; }
+
+/* 結果画面：獲得した称号の名前を赤く点滅 */
+.title-line { min-height: 1.6em; }
+.title-name { color: #ff2a2a; font-weight: 900; animation: titleBlink .7s ease-in-out infinite alternate; }
+@keyframes titleBlink { from { color: #ff2a2a; } to { color: #ffa0a0; } }
+body.power-save-mode .title-name { animation: none !important; }
+
+/* 称号の選択（アカウント編集） */
+.title-select { margin-bottom: 8px; }
+.title-current {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left;
+  font: inherit; font-size: 1rem; font-weight: 700; color: #000; padding: 9px 10px; cursor: pointer;
+  background: #fff; border: 2px solid #3a2a18; border-radius: 8px;
+}
+.title-current i { font-style: normal; font-size: .75rem; }
+.title-list {
+  list-style: none; margin: 6px 0 4px; padding: 4px; max-height: 240px; overflow-y: auto;
+  background: rgba(255, 255, 255, 0.9); border: 2px solid #3a2a18; border-radius: 8px;
+}
+.title-item { padding: 8px 10px; border-radius: 6px; font-weight: 700; cursor: pointer; color: #000; }
+.title-item.sel { background: rgba(255, 211, 77, 0.55); }
+.title-item.locked { opacity: .35; cursor: default; }
+
+.center-text { text-align: center; }
+
+/* 保存できたあと、閉じる×を拡大縮小して知らせる */
+.sheet-close.pulse { animation: close-pulse .8s ease-in-out infinite; }
+@keyframes close-pulse { 0%, 100% { scale: 1; } 50% { scale: 1.3; } }
+
+/* 「変更しました」の通知：黒い半透明の角丸の板に、明るい緑の文字 */
+.sheet .form-ok.result-ok { background: rgba(0, 0, 0, 0.35); color: #6bff7a; border-radius: 10px; padding: 6px 12px; width: fit-content; margin: 8px auto 0; }
+
+/* お邪魔キャラ設定への入口（HOME）／ログイン画面の赤い案内 */
+.pest-link { display: block; margin: 14px auto 0; font-size: .85rem; text-decoration: underline; background: none; border: 0; color: var(--fg); font-weight: 400; }
+.login-need { color: #d00000; font-weight: 900; text-align: center; white-space: pre-line; margin: 4px 0 10px; }
+
+/* アカウント編集：項目の上に線を入れて区切る */
+.sheet-body h3.sec { border-top: 2px solid rgba(0, 0, 0, 0.3); padding-top: 14px; margin: 12px 0 4px; } /* ゲーム設定の区切り線と同じ太さ・色・余白 */
+
+/* 難易度ボタンの木目：同じ画像のまま、縦の位置をずらして、並びが揃わないようにする */
+.diff.easy { background-position: center 12%; }
+.diff.normal { background-position: center 50%; }
+.diff.hard { background-position: center 88%; }
+
+/* 難易度ボタンの木目：同じ画像の、左・真ん中・右あたりを拡大して使い、柄が揃わないようにする */
+.diff.easy { background-size: 300% auto; background-position: 0% 50%; }
+.diff.normal { background-size: 300% auto; background-position: 50% 50%; }
+.diff.hard { background-size: 300% auto; background-position: 100% 50%; }
+
+/* 終了の画像は、虫・ねずみより手前に出す */
+.over { z-index: 10; }
+/* ねずみ：足もとを軸に、メトロノームのように左右にゆれる */
+.bug.mouse img { transform-origin: 50% 100%; animation: mouseSway 1s ease-in-out infinite alternate; }
+.bug.mouse.target img { animation: bugBlink .3s linear infinite alternate, mouseSway 1s ease-in-out infinite alternate; }
+.bug.mouse.dying img { transform-origin: 50% 50%; animation: smokeGrow .5s ease-out forwards; }
+@keyframes mouseSway { from { rotate: -8deg; } to { rotate: 8deg; } }
+
+/* 累積ビール・累積げろげろ：ラベルは左、数値だけ右にそろえる */
+.stat-line { flex-direction: column; align-items: stretch; gap: 4px; flex-wrap: nowrap; }
+.stat-line span { width: 100%; }
+.stat-line span b { margin-left: auto; }
+
+/* HOMEの「難易度選択」：しらふ等の文字と同じ大きさ */
+.diffs-title { margin: 0 0 -8px; font-size: 1.44rem; font-weight: 900; color: var(--fg); }
+
+/* 残り時間の数字を少し左へ寄せる（その分、ゲージが短くなる） */
+.time-wrap { margin-right: 12px; }
+
+/* 結果画面の「ランキングを確認する」：上部と同じ白っぽい文字 */
+.rank-link { color: var(--fg); }
+
+/* お邪魔キャラ：半透明の紫の影で、少しだけ目立たせる（煙の演出には付けない） */
+.bug:not(.dying) img { filter: drop-shadow(0 0 5px rgba(150, 70, 230, 0.7)); }
+
+/* HOME：「プレイ中」の表示をカードにする（黒の半透明・角丸）。ランクの数値だけ緑 */
+.home-account { background: rgba(0, 0, 0, 0.5); border-radius: 14px; padding: 10px 18px; }
+.home-account .rank-num { color: #6bff7a; }
+
+/* 結果画面：称号・ランクのカード（黒の半透明・角丸） */
+.result-card { background: rgba(0, 0, 0, 0.5); border-radius: 12px; padding: 8px 16px; font-weight: 900; line-height: 1.5; }
+
+/* My：ランクの数値から右を、右端から25px左へ寄せる（数値と説明は、ひとかたまり） */
+.stat-line .rank-val { font-style: normal; margin-left: auto; margin-right: 25px; display: inline-flex; align-items: center; }
+.stat-line .rank-val b { margin-left: 0; }
+
+/* 結果画面のカード：文の中に入れるビールの画像 */
+.beer-inline { width: 1.4rem; height: 1.4rem; object-fit: contain; vertical-align: middle; margin: 0 2px; }
+
+/* HOMEと結果画面：縦中央ではなく、ヘッダーの下から決まった余白で並べる（端末の高さで位置が変わらないように）
+   位置の微調整は、この padding-top の値で行う */
+.screen.home, .screen.result { justify-content: flex-start; translate: 0 -50px; padding-top: 0; } /* 上詰めのまま、全体を50px上へ */
+
+/* 設定を変えたあと、保存ボタンを少し拡大縮小して、押すことを促す */
+.btn.nudge { animation: nudge .9s ease-in-out infinite; }
+@keyframes nudge { 0%, 100% { scale: 1; } 50% { scale: 1.1; } }
+
+/* HOME：ランクの左に、設定中の称号（未設定なら「称号未設定」） */
+.home-account .home-title { margin-right: 14px; color: #d8c4ff; }
