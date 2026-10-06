@@ -825,7 +825,7 @@ body.power-save-mode .title-name { animation: none !important; }
 .diff.hard { background-position: center 88%; }
 
 /* 難易度ボタンの木目：同じ画像の、左・真ん中・右あたりを拡大して使い、柄が揃わないようにする */
-.diff.easy { background-size: 300% auto; background-position: 0% 50%; }
+.diff.easy { background-size: 300% auto; background-position: 8% 42%; }
 .diff.normal { background-size: 300% auto; background-position: 50% 50%; }
 .diff.hard { background-size: 300% auto; background-position: 100% 50%; }
 
@@ -843,7 +843,7 @@ body.power-save-mode .title-name { animation: none !important; }
 .stat-line span b { margin-left: auto; }
 
 /* HOMEの「難易度選択」：しらふ等の文字と同じ大きさ */
-.diffs-title { margin: 0 0 -8px; font-size: 1.44rem; font-weight: 900; color: var(--fg); }
+.diffs-title { margin: -5px 0 -8px; font-size: 1.44rem; font-weight: 900; color: var(--fg); }
 
 /* 残り時間の数字を少し左へ寄せる（その分、ゲージが短くなる） */
 .time-wrap { margin-right: 12px; }
@@ -862,7 +862,7 @@ body.power-save-mode .title-name { animation: none !important; }
 .result-card { background: rgba(0, 0, 0, 0.5); border-radius: 12px; padding: 8px 16px; font-weight: 900; line-height: 1.5; }
 
 /* My：ランクの数値から右を、右端から25px左へ寄せる（数値と説明は、ひとかたまり） */
-.stat-line .rank-val { font-style: normal; margin-left: auto; margin-right: 25px; display: inline-flex; align-items: center; }
+.stat-line .rank-val { font-style: normal; margin-left: auto; margin-right: 25px; display: block; white-space: nowrap; }
 .stat-line .rank-val b { margin-left: 0; }
 
 /* 結果画面のカード：文の中に入れるビールの画像 */
@@ -871,7 +871,7 @@ body.power-save-mode .title-name { animation: none !important; }
 /* HOMEと結果画面：縦中央ではなく、ヘッダーの下から決まった余白で並べる（端末の高さで位置が変わらないように）
    位置の微調整は、この padding-top の値で行う */
 .screen.home, .screen.result { justify-content: flex-start; translate: 0 -50px; padding-top: 0; } /* 上詰めのまま、全体を50px上へ */
-.screen.result { translate: 0 0; } /* 結果画面だけ、50px下へ（HOMEとの差） */
+.screen.result { translate: 0 15px; } /* 結果画面だけ、50px下へ（HOMEとの差） */
 
 /* 設定を変えたあと、保存ボタンを少し拡大縮小して、押すことを促す */
 .btn.nudge { animation: nudge .9s ease-in-out infinite; }
@@ -881,7 +881,25 @@ body.power-save-mode .title-name { animation: none !important; }
 .home-account .home-title { margin-right: 14px; color: #d8c4ff; }
 
 /* 結果画面のカード：ビール画像は、標準（1.4rem）の85% */
-.result-card .beer-inline { width: 1.19rem; height: 1.19rem; }
+.result-card .beer-inline { width: 1.19rem; height: 1.19rem; translate: -4px -3px; } /* 画像だけ、4px左・3px上へ */
 
 /* 「虫が苦手な人は～」だけ、8px上へ */
 .pest-up { translate: 0 -8px; }
+
+/* 「バッテリーの減りがはやい場合」だけ、15px上へ */
+.battery-up { translate: 0 -15px; }
+
+/* HOME：ニックネームの左の、角丸の赤い▶ */
+.home-account .play-mark { width: .8em; height: .8em; margin-right: 7px; vertical-align: -.05em; fill: #ff3b30; stroke: #ff3b30; stroke-width: 1.6; stroke-linejoin: round; }
+
+/* My：次のランクまでの数値を赤で */
+.stat-line .next-left { color: #e00000; }
+
+/* 見出し・項目のアイコン（ゲーム設定・アカウント編集）を、4px上へ */
+.set-icon { translate: 0 -4px; }
+
+/* My：ランク行の中の赤い数値に、全幅の指定が当たらないようにする */
+.stat-line .rank-val span { width: auto; }
+
+/* My：次のランクまでのビール画像を、4px上へ */
+.stat-line .beer-inline { translate: 0 -4px; }

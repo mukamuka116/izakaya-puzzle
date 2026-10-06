@@ -28,6 +28,19 @@ function AppInner() {
   const [diffKey, setDiffKey] = useState('normal')
   const [rawScore, setRawScore] = useState(0)
   const [round, setRound] = useState(0)
+  // 省電力モードを切りかえて保存したときは、HOMEに戻る（ゲーム設定の保存から呼ばれる）
+  useEffect(() => {
+    const goHome = () => setPhase('title')
+    window.addEventListener('pb-go-home', goHome)
+    return () => window.removeEventListener('pb-go-home', goHome)
+  }, [])
+  // HOMEの2つのリンクの並び：虫が上になる確率7割、バッテリーが上は3割。HOMEに戻るたびに、決め直す
+  const [bugFirst, setBugFirst] = useState(() => Math.random() < 0.7)
+  const firstRun = useRef(true)
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return }
+    if (phase === 'title') setBugFirst(Math.random() < 0.7)
+  }, [phase])
   const [paused, setPaused] = useState(false)
   const [playable, setPlayable] = useState(false) // 開始前・終了後は中断できない
   const [stats, setStats] = useState({ fever: 0, gero: 0 })
@@ -126,7 +139,7 @@ function AppInner() {
       <h1 className="ghost">Puzzle & Beers</h1>
       <div className="home-account">
         {user ? (
-          <span style={{ textAlign: 'center' }}><span className="home-title">{user.title || '称号未設定'}</span>ランク <span className="rank-num">{rankInfo(user.totalBeers).rank}</span><br /><span style={{ fontSize: '1.2em', color: '#ffd9ae' }}>{user.nickname}（{user.loginId}）</span><br />でプレイ中</span>
+          <span style={{ textAlign: 'center' }}><span className="home-title">{user.title || '称号未設定'}</span>ランク <span className="rank-num">{rankInfo(user.totalBeers).rank}</span><br /><span style={{ fontSize: '1.2em', color: '#ffd9ae' }}><svg className="play-mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.4 1.6 L8 5 L2.4 8.4 Z" /></svg>{user.nickname}<br />（{user.loginId}）</span><br />でプレイ中</span>
         ) : (
           <>
             <span className="guest-text">ゲスト<span style={{ fontSize: '0.8em', color: 'var(--fg)' }}>としてプレイ中</span></span>
@@ -144,8 +157,12 @@ function AppInner() {
         ))}
       </div>
       <button className="btn start" onClick={startGame}>スタート</button>
-      {!(user && pest === 'mouse') && <button className="link pest-link pest-up" onClick={() => openPanel(user ? 'edit' : 'login', 'pest')}>虫が苦手な人はこちらで設定変更</button>}
-      {!powerSave && <button className="link pest-link" onClick={() => openPanel('settings')}>バッテリーの減りがはやい場合</button>}
+      {[
+        { key: 'pest', show: !(user && pest === 'mouse'), label: '虫が苦手な人はこちらで設定変更', onClick: () => openPanel(user ? 'edit' : 'login', 'pest') },
+        { key: 'battery', show: !powerSave, label: 'バッテリーの減りがはやい場合', onClick: () => openPanel('settings') },
+      ].sort((a) => ((a.key === 'pest') === bugFirst ? -1 : 1)) // 虫を上にするか下にするかで、並びを決める
+        .filter((l) => l.show)
+        .map((l, n) => <button key={l.key} className={`link pest-link ${n === 0 ? 'pest-up' : 'battery-up'}`} onClick={l.onClick}>{l.label}</button>)}
     </div>
     </>
   )

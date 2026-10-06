@@ -13,7 +13,7 @@ const TOC = [
   { id: 'screen', label: 'ゲーム画面の見かた' },
   { id: 'score', label: '点数とコンボ' },
   { id: 'beer', label: 'ビールとフィーバー' },
-  { id: 'time', label: 'つきだしタイム・しめタイム' },
+  { id: 'time', label: 'つきだし・しめタイム' },
   { id: 'gero', label: 'げろげろゲージ' },
   { id: 'diff', label: '難易度' },
   { id: 'chest', label: '宝箱と鍵' },

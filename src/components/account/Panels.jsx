@@ -256,19 +256,19 @@ function EditPanel() {
   const del = () => run('del', async () => { await api.deleteAccount(token, { password: delPw }); signOut(); closePanel() })
 
   return (
-    <Sheet title="アカウント編集" onClose={closePanel} wide pulse={!!msg && !error}>
+    <Sheet title={<><img src="/images/icon/information/アカウント設定.png" alt="" className="set-icon" /> アカウント編集</>} onClose={closePanel} wide pulse={!!msg && !error}>
       <div className="stat-box"><div>ID：<b>{user.loginId}</b></div></div>
 
-      <h3 className="sec">ニックネーム</h3>
+      <h3 className="sec"><img src="/images/icon/information/アカウント.png" alt="" className="set-icon" /> ニックネーム</h3>
       <Field label="新しいニックネーム"><input value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={10} /></Field>
       <button className="btn small" onClick={saveNick} disabled={busy}>変更</button>
       <Result k="nick" />
 
-      <h3 className="sec">称号変更</h3>
+      <h3 className="sec"><img src="/images/icon/information/称号.png" alt="" className="set-icon" /> 称号変更</h3>
       <TitleSelect owned={user.titles} value={title} onChange={saveTitle} />
       <Result k="title" />
 
-      <h3 className="sec" ref={pestRef}>お邪魔キャラの変更</h3>
+      <h3 className="sec" ref={pestRef}><img src="/images/icon/information/お邪魔.png" alt="" className="set-icon" /> お邪魔キャラの変更</h3>
       <p className="sheet-text">虫が苦手な人向けの設定です。初期は虫（ハエ・ゴキブリ）です。</p>
       <div className="toggle-row">
         <button className={`toggle-btn${pest === 'bug' ? ' active' : ''}`} onClick={() => savePest('bug')} disabled={busy}>虫</button>
@@ -276,13 +276,13 @@ function EditPanel() {
       </div>
       <Result k="pest" />
 
-      <h3 className="sec">パスワードの変更</h3>
+      <h3 className="sec"><img src="/images/icon/information/鍵.png" alt="" className="set-icon" /> パスワードの変更</h3>
       <Field label="現在のパスワード"><input type="password" value={pw.oldPassword} onChange={(e) => setPw({ ...pw, oldPassword: e.target.value })} autoComplete="current-password" /></Field>
       <Field label="新しいパスワード"><input type="password" value={pw.newPassword} onChange={(e) => setPw({ ...pw, newPassword: e.target.value })} autoComplete="new-password" /></Field>
       <button className="btn small" onClick={savePw} disabled={busy}>パスワードを変更</button>
       <Result k="pw" />
 
-      <h3 className="sec danger">アカウントの削除</h3>
+      <h3 className="sec danger"><img src="/images/icon/information/ゴミ箱.png" alt="" className="set-icon" /> アカウントの削除</h3>
       {!confirmDel ? (
         <button className="btn small" onClick={() => setConfirmDel(true)}>アカウントを削除する</button>
       ) : (
@@ -360,7 +360,7 @@ function MyTab() {
     <>
       <div className="stat-box">
         <div className="my-name">{user.nickname}</div>
-        <div className="stat-line"><span>ランク <i className="rank-val"><b>{rk.rank}</b>{rk.need ? <>（次のランクまで、あと<img className="beer-inline" src="/images/ビール.png" alt="ビール" />{rk.need - rk.into}）</> : '（最高ランク）'}</i></span></div>
+        <div className="stat-line"><span>ランク <i className="rank-val"><b>{rk.rank}</b>{rk.need ? <>（次のランクまで、あと<img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="next-left">{rk.need - rk.into}</span>）</> : '（最高ランク）'}</i></span></div>
         <div className="stat-line">
           <span><img src="/images/ビール.png" alt="" /> 累積ビール <b><Digits value={user.totalBeers} width={4} /></b></span>
           <span><img src="/images/gero/げろげろ100-1.png" alt="" /> 累積げろげろ <b><Digits value={user.totalGero} width={4} /></b></span>
@@ -467,6 +467,7 @@ function SettingsPanel() {
   const { closePanel, user, token } = useAuth()
   const st = useSettings()
   const saveTimer = useRef(null)
+  const initialPowerSave = useRef(st.powerSave) // 開いたときの省電力モード（切りかえて保存したら、HOMEへ戻す）
   const [dirty, setDirty] = useState(false) // 設定を変えたら、保存ボタンで知らせる
 
   // 変更したら端末に保存し、ログイン中はアカウントにも保存する（少し待ってまとめて送る）
@@ -485,6 +486,7 @@ function SettingsPanel() {
     clearTimeout(saveTimer.current)
     if (user) api.updateMe(token, { settings: getSettings() }).catch(() => {})
     closePanel()
+    if (getSettings().powerSave !== initialPowerSave.current) window.dispatchEvent(new Event('pb-go-home')) // 省電力モードを切りかえて保存したら、HOMEへ
   }
 
   const reset = () => { setDirty(true); resetSettings(); if (user) api.updateMe(token, { settings: getSettings() }).catch(() => {}) }
