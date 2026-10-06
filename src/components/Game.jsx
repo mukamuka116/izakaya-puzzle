@@ -667,6 +667,10 @@ export default function Game({ diff, onFinish, paused = false, onPlayable, rank:
         {over && <div className="over"><img src="/images/終了.png" alt="" /></div>}
       </div>
 
+      {rank > 0 && (
+        <div className="rank-bonus"><b>ランクボーナス</b>（スコア基準 +<span className="rb-num">{rank}</span>pt、フィーバー {feverBonusSec(rank) > 0 ? <><span className="rb-num">{feverBonusSec(rank)}</span>秒延長</> : '延長なし'}）</div>
+      )}
+
       <div className="lower">
         <div className="left">
           <div className="row score-row">

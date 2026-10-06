@@ -5,7 +5,6 @@ import { useAuth } from '../../auth'
 import { playSound } from '../../sound'
 import { getSettings, resetSettings, setSettings, sfxVolume, useSettings } from '../../settings'
 import Digits from '../Digits'
-import { rankInfo } from '../../rank'
 import { getLastPlayAt } from '../../lastPlay'
 import { listTitles, NONE_TITLE } from '../../titles'
 
@@ -356,12 +355,10 @@ function MyTab() {
         <button className="link" onClick={() => openPanel('login')}>ログインはこちら</button></p>
     )
   }
-  const rk = rankInfo(user.totalBeers)
   return (
     <>
       <div className="stat-box">
-        <div className="my-name">{user.nickname}</div>
-        <div className="stat-line"><span>ランク <i className="rank-val"><b>{rk.rank}</b>{rk.need ? <>（次のランクまで、あと<img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="next-left">{rk.need - rk.into}</span>）</> : '（最高ランク）'}</i></span></div>
+        <div className="my-name">{user.nickname}<small className="my-id">（{user.loginId}）</small></div>
         <div className="stat-line">
           <span><img src="/images/ビール.png" alt="" /> 累積ビール <b><Digits value={user.totalBeers} width={4} /></b></span>
           <span><img src="/images/gero/げろげろ100-1.png" alt="" /> 累積げろげろ <b><Digits value={user.totalGero} width={4} /></b></span>

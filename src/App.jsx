@@ -53,10 +53,18 @@ function AppInner() {
   const [submit, setSubmit] = useState(null) // スコア送信の結果（ログイン中のみ）
 
   // ゲーム開始：ログイン中なら、サーバーから開始の札をもらっておく（スコア送信に使う）
+  // 通信に失敗したときは、4秒おきに最大4回やり直す（ゲームが始まってから約16秒以内なら、結果の送信に間に合う）
+  const startSeq = useRef(0)
+  const fetchStartToken = (difficulty, seq, attempt = 0) => {
+    api.startScore(token, { difficulty })
+      .then((r) => { if (startSeq.current === seq) startTokenRef.current = r.startToken })
+      .catch(() => { if (startSeq.current === seq && attempt < 4) setTimeout(() => fetchStartToken(difficulty, seq, attempt + 1), 4000) })
+  }
   const startGame = () => {
     startTokenRef.current = null
     setSubmit(null)
-    if (user) api.startScore(token, { difficulty: diffKey }).then((r) => { startTokenRef.current = r.startToken }).catch(() => {})
+    const seq = ++startSeq.current
+    if (user) fetchStartToken(diffKey, seq)
     setRound((n) => n + 1)
     setPhase('play')
   }
@@ -73,6 +81,9 @@ function AppInner() {
       api.submitScore(token, { startToken, difficulty: diffKey, rawPt, finalPt: Math.round(rawPt * diff.mult), beers: st.fever, gero: st.gero })
         .then((r) => { setLastPlayAt(r.at); const after = rankInfo(r.totalBeers).rank; setSubmit({ status: 'ok', ranks: r.ranks, newTitle: r.newTitle, rankUp: after > before ? after : null, nextLeft: nextLeft(r.totalBeers) }); refresh() })
         .catch((e) => setSubmit({ status: 'error', message: e.message }))
+    } else if (user) {
+      // 開始の札を受け取れなかったとき：黙って飛ばさず、画面に出す
+      setSubmit({ status: 'error', message: 'ゲーム開始の情報を受け取れませんでした。通信を確認してください' })
     } else {
       setSubmit(null)
     }
@@ -116,7 +127,7 @@ function AppInner() {
                 : (rawScore >= TITLE_MIN_PT ? '称号：すべて獲得済みです' : `スコア${TITLE_MIN_PT.toLocaleString()}pt以上で称号を獲得できます`))}
             </div>
             {user && submit.rankUp && <div>ランクアップ！ <span className="title-name">ランク{submit.rankUp}</span> になった！</div>}
-            {user && <div>{submit.nextLeft === null ? 'ランクは最高です' : <>次のランクまで、あと <img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="title-name">{submit.nextLeft}</span></>}</div>}
+            {user && submit.nextLeft !== null && <div>{<>次のランクまで、あと <img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="title-name">{submit.nextLeft}</span></>}</div>}
           </div>
         )}
         <p className="line submit-line">
@@ -140,7 +151,7 @@ function AppInner() {
       <h1 className="ghost">Puzzle & Beers</h1>
       <div className="home-account">
         {user ? (
-          <span style={{ textAlign: 'center' }}><span className="home-title">{user.title || '称号未設定'}</span>ランク <span className="rank-num">{rankInfo(user.totalBeers).rank}</span><br /><span style={{ fontSize: '1.2em', color: '#ffd9ae' }}><svg className="play-mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.4 1.6 L8 5 L2.4 8.4 Z" /></svg>{user.nickname}<br />（{user.loginId}）</span><br />でプレイ中</span>
+          <span style={{ textAlign: 'center' }}><span className="home-title">{user.title || '称号未設定'}</span>ランク <span className="rank-num">{rankInfo(user.totalBeers).rank}</span><br />{nextLeft(user.totalBeers) !== null && <><span className="rank-sub">（次のランクまで、あと<img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="next-left">{nextLeft(user.totalBeers)}</span>）</span><br /></>}<span style={{ fontSize: '1.2em', color: '#ffd9ae' }}><svg className="play-mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.4 1.6 L8 5 L2.4 8.4 Z" /></svg>{user.nickname}<br />（{user.loginId}）</span>でプレイ中</span>
         ) : (
           <>
             <span className="guest-text">ゲスト<span style={{ fontSize: '0.8em', color: 'var(--fg)' }}>としてプレイ中</span></span>

@@ -861,9 +861,6 @@ body.power-save-mode .title-name { animation: none !important; }
 /* 結果画面：称号・ランクのカード（黒の半透明・角丸） */
 .result-card { background: rgba(0, 0, 0, 0.5); border-radius: 12px; padding: 8px 16px; font-weight: 900; line-height: 1.5; }
 
-/* My：ランクの数値から右を、右端から25px左へ寄せる（数値と説明は、ひとかたまり） */
-.stat-line .rank-val { font-style: normal; margin-left: auto; margin-right: 25px; display: block; white-space: nowrap; }
-.stat-line .rank-val b { margin-left: 0; }
 
 /* 結果画面のカード：文の中に入れるビールの画像 */
 .beer-inline { width: 1.4rem; height: 1.4rem; object-fit: contain; vertical-align: middle; margin: 0 2px; }
@@ -892,17 +889,11 @@ body.power-save-mode .title-name { animation: none !important; }
 /* HOME：ニックネームの左の、角丸の赤い▶ */
 .home-account .play-mark { width: .8em; height: .8em; margin-right: 7px; vertical-align: -.05em; fill: #ff3b30; stroke: #ff3b30; stroke-width: 1.6; stroke-linejoin: round; }
 
-/* My：次のランクまでの数値を赤で */
-.stat-line .next-left { color: #e00000; }
 
 /* 見出し・項目のアイコン（ゲーム設定・アカウント編集）を、4px上へ */
 .set-icon { translate: 0 -4px; }
 
-/* My：ランク行の中の赤い数値に、全幅の指定が当たらないようにする */
-.stat-line .rank-val span { width: auto; }
 
-/* My：次のランクまでのビール画像を、4px上へ */
-.stat-line .beer-inline { translate: 0 -4px; }
 
 /* マニュアルのもくじ：各項目の木目（白）を、同じ画像のまま、拡大と基準位置を変えて、柄が揃わないようにする（15項目） */
 .manual-toc-list li:nth-child(1) a { background-size: 260% auto; background-position: 11% 25%; }
@@ -920,3 +911,20 @@ body.power-save-mode .title-name { animation: none !important; }
 .manual-toc-list li:nth-child(13) a { background-size: 314% auto; background-position: 51% 67%; }
 .manual-toc-list li:nth-child(14) a { background-size: 361% auto; background-position: 88% 54%; }
 .manual-toc-list li:nth-child(15) a { background-size: 408% auto; background-position: 24% 41%; }
+
+/* HOME：ランクの詳細（スコア基準・フィーバー延長・次のランクまで）。小さめの文字 */
+.home-account .rank-sub { font-size: .82em; }
+.home-account .rank-sub .beer-inline { width: 1.15rem; height: 1.15rem; margin: 0 1px; }
+.home-account .next-left { color: #ff6b6b; font-weight: 900; }
+
+/* ゲーム画面：盤面の直下の「ランクボーナス」（上下の余白は狭く） */
+.rank-bonus { margin: 2px 0; text-align: center; font-size: .72rem; line-height: 1.2; color: var(--fg); }
+.rank-bonus b { color: #ffd34d; margin-right: 2px; }
+
+.rank-bonus .rb-num { font-size: 1.2em; font-weight: 900; }
+
+/* HOME：「あと」の後ろのビール画像だけ、3px上・2px左へ（数字の位置はそのまま） */
+.home-account .rank-sub .beer-inline { translate: -2px -3px; }
+
+/* My：ニックネームの横の（ID）。小さめで、細い字 */
+.my-name .my-id { margin-left: 6px; font-size: .75em; font-weight: 400; }
