@@ -47,7 +47,7 @@ function AppInner() {
   const [stats, setStats] = useState({ fever: 0, gero: 0 })
   const diff = DIFFICULTY[diffKey]
   useEffect(() => { markPhase(phase) }, [phase]) // ゲーム中は、クリック音を鳴らさない（例外あり）
-  const { user, token, openPanel, refresh } = useAuth()
+  const { user, token, openPanel, setProfile } = useAuth()
   const { pest, powerSave } = useSettings()
   const startTokenRef = useRef(null)
   const [submit, setSubmit] = useState(null) // スコア送信の結果（ログイン中のみ）
@@ -79,7 +79,7 @@ function AppInner() {
       const before = rankInfo(user.totalBeers).rank
       setSubmit({ status: 'sending' })
       api.submitScore(token, { startToken, difficulty: diffKey, rawPt, finalPt: Math.round(rawPt * diff.mult), beers: st.fever, gero: st.gero })
-        .then((r) => { setLastPlayAt(r.at); const after = rankInfo(r.totalBeers).rank; setSubmit({ status: 'ok', ranks: r.ranks, newTitle: r.newTitle, rankUp: after > before ? after : null, nextLeft: nextLeft(r.totalBeers) }); refresh() })
+        .then((r) => { setLastPlayAt(r.at); const after = rankInfo(r.totalBeers).rank; setSubmit({ status: 'ok', newTitle: r.newTitle, rankUp: after > before ? after : null, nextLeft: nextLeft(r.totalBeers) }); setProfile(r.profile) })
         .catch((e) => setSubmit({ status: 'error', message: e.message }))
     } else if (user) {
       // 開始の札を受け取れなかったとき：黙って飛ばさず、画面に出す
@@ -151,7 +151,7 @@ function AppInner() {
       <h1 className="ghost">Puzzle & Beers</h1>
       <div className="home-account">
         {user ? (
-          <span style={{ textAlign: 'center' }}><span className="home-title">{user.title || '称号未設定'}</span>ランク <span className="rank-num">{rankInfo(user.totalBeers).rank}</span><br />{nextLeft(user.totalBeers) !== null && <><span className="rank-sub">（次のランクまで、あと<img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="next-left">{nextLeft(user.totalBeers)}</span>）</span><br /></>}<span style={{ fontSize: '1.2em', color: '#ffd9ae' }}><svg className="play-mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.4 1.6 L8 5 L2.4 8.4 Z" /></svg>{user.nickname}<br />（{user.loginId}）</span>でプレイ中</span>
+          <span style={{ textAlign: 'center' }}>{user.title ? <span className="home-title">{user.title}</span> : <button className="home-title title-unset" onClick={() => openPanel('edit', 'title')}>称号未設定</button>}ランク <span className="rank-num">{rankInfo(user.totalBeers).rank}</span><br />{nextLeft(user.totalBeers) !== null && <><span className="rank-sub">（次のランクまで、あと<img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="next-left">{nextLeft(user.totalBeers)}</span>）</span><br /></>}<span style={{ fontSize: '1.44em', color: '#ffd9ae' }}><svg className="play-mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.4 1.6 L8 5 L2.4 8.4 Z" /></svg>{user.nickname}</span><br /><span style={{ fontSize: '1.2em', color: 'var(--fg)' }}>（{user.loginId}）</span>でプレイ中</span>
         ) : (
           <>
             <span className="guest-text">ゲスト<span style={{ fontSize: '0.8em', color: 'var(--fg)' }}>としてプレイ中</span></span>

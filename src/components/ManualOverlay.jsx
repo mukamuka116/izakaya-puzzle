@@ -228,7 +228,7 @@ export default function ManualOverlay({ onClose }) {
           <section className="manual-section" id="manual-shuffle">
             <h3>11 総入れ替え</h3>
             <ul>
-              <li>同じ料理が3つ以上そろう種類がなく、宝箱と鍵の組み合わせもない（消せる手がない）ときは、盤面のピースがすべて入れ替わります。毒の位置は引き継がれます。</li>
+              <li>同じ料理が3つ以上そろう種類がなく、宝箱と鍵の組み合わせもない（消せる手がない）ときは、盤面のピースがすべて入れ替わります。毒も、すべて消えます。</li>
             </ul>
           </section>
 

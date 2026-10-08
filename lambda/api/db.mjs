@@ -55,7 +55,7 @@ export async function getDb() {
       const out = {};
       for (let i = 0; i < ids.length; i += 100) {
         const keys = ids.slice(i, i + 100).map((loginId) => ({ loginId }));
-        const r = await doc.send(new BatchGetCommand({ RequestItems: { [ACCOUNTS]: { Keys: keys, ProjectionExpression: 'loginId, nickname, avatar, #t', ExpressionAttributeNames: { '#t': 'title' } } } }));
+        const r = await doc.send(new BatchGetCommand({ RequestItems: { [ACCOUNTS]: { Keys: keys, ProjectionExpression: 'loginId, nickname, avatar, totalBeers, #t', ExpressionAttributeNames: { '#t': 'title' } } } }));
         for (const it of r.Responses?.[ACCOUNTS] ?? []) out[it.loginId] = it;
       }
       return out;

@@ -1,5 +1,6 @@
 // run.mjs — メモリ上のDBでAPI全体を動かす確認テスト（AWSには接続しない）。実行: node test/run.mjs
 process.env.AUTH_SECRET = 'test-secret-test-secret-1234';
+process.env.RANKING_CACHE_MS = '0'; // ふだんのテストでは、順位表を覚えない
 import assert from 'node:assert/strict';
 import { makeHandler } from '../index.mjs';
 import { createMemDb } from './memdb.mjs';
@@ -101,7 +102,8 @@ await test('スコア送信：ベスト5・累積・ランキング', async () =
   const r = await play(alice, 'hard', 10000, 4, 2);
   assert.equal(r.status, 200, JSON.stringify(r.data));
   assert.equal(r.data.best[0].finalPt, 20000);
-  assert.deepEqual(Object.keys(r.data.ranks).sort(), ['all#any', 'all#hard', 'today#any', 'today#hard']); // 本日は today# の名前
+  assert.equal(r.data.profile.totalBeers, 4); // 更新後のプロフィールも返す（画面が取り直さなくて済む）
+  assert.ok(Array.isArray(r.data.profile.titles));
   assert.equal(r.data.totalBeers, 4);
   assert.equal(r.data.totalGero, 2);
   for (const rawPt of [5000, 6000, 7000, 8000, 9000]) await play(alice, 'normal', rawPt, 1, 0);
@@ -261,6 +263,22 @@ await test('ランキングのランク：記録したときのランクを表�
   assert.equal((await rowOf()).playerRank, 1);
   db._accounts.get('alice01').totalBeers = 500; // あとで、ランクが大きく上がっても
   assert.equal((await rowOf()).playerRank, 1); // 記録のランクは、そのまま
+});
+
+await test('ランキング：覚えている間は、DynamoDBを読み直さない', async () => {
+  process.env.RANKING_CACHE_MS = '30000';
+  let reads = 0;
+  const orig = db.queryBoard;
+  db.queryBoard = async (...a) => { reads++; return orig(...a); };
+  try {
+    await call('GET', '/ranking', { query: { difficulty: 'normal', period: 'all' } });
+    await call('GET', '/ranking', { query: { difficulty: 'normal', period: 'all' } });
+    await call('GET', '/ranking', { token: alice, query: { difficulty: 'normal', period: 'all' } });
+    assert.equal(reads, 1); // 3回見ても、読むのは1回
+    await play(alice, 'normal', 9000, 1, 0); // 記録を書くと、その順位表は捨てられる
+    await call('GET', '/ranking', { query: { difficulty: 'normal', period: 'all' } });
+    assert.equal(reads, 2);
+  } finally { db.queryBoard = orig; process.env.RANKING_CACHE_MS = '0'; }
 });
 
 await test('アカウント削除：ランキングの記録も消える', async () => {

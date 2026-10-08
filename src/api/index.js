@@ -38,5 +38,37 @@ const real = {
   getRanking: (token, q) => call('GET', '/ranking', { token, query: q }),
 }
 
-export const api = isMock ? mockApi : real
+// 通信を減らす工夫（画面の中だけで覚える）
+//  ・順位表：同じ順位表は60秒間、取り直さない（タブを戻る・画面を開き直すだけなら、通信しない）
+//  ・「忘れたときの質問」：内容が変わらないので、1回だけ取る
+//  ・記録を送る／名前や称号を変える／ログインの出入りのあとは、覚えた順位表を捨てる
+const RANKING_TTL_MS = 60 * 1000
+const rankingCache = new Map()
+const clearRankingCache = () => rankingCache.clear()
+let questions = null
+
+function withCache(base) {
+  const afterClear = (fn) => async (...args) => { const r = await fn(...args); clearRankingCache(); return r }
+  return {
+    ...base,
+    getQuestions: () => (questions ??= base.getQuestions().catch((e) => { questions = null; throw e })),
+    getRanking: async (token, q) => {
+      const key = `${token ?? ''}|${q.difficulty}|${q.period}`
+      const hit = rankingCache.get(key)
+      if (hit && Date.now() - hit.at < RANKING_TTL_MS) return hit.data
+      const data = await base.getRanking(token, q)
+      rankingCache.set(key, { at: Date.now(), data })
+      return data
+    },
+    submitScore: afterClear(base.submitScore),
+    updateMe: afterClear(base.updateMe),
+    deleteAccount: afterClear(base.deleteAccount),
+    register: afterClear(base.register),
+    login: afterClear(base.login),
+    recoveryReset: afterClear(base.recoveryReset),
+  }
+}
+
+export const api = withCache(isMock ? mockApi : real)
+export { clearRankingCache }
 export { ApiError }

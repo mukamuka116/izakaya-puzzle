@@ -465,7 +465,7 @@ img { image-rendering: pixelated; }
 .manual-toc { background: rgba(255, 255, 255, 0.4); border: 1.5px solid rgba(0, 0, 0, 0.45); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
 .manual-toc-title { font-size: .85rem; font-weight: 900; margin-bottom: 6px; letter-spacing: 1px; }
 .manual-toc-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
-.manual-toc-list a { display: flex; align-items: baseline; gap: 6px; padding: 7px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.45); color: #000; text-decoration: none; font-size: .8rem; font-weight: 700; line-height: 1.35; }
+.manual-toc-list a { display: flex; align-items: baseline; gap: 6px; padding: 7px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.45); color: #000; text-decoration: none; font-size: .8rem; font-weight: 400; line-height: 1.35; }
 .manual-toc-num { flex: none; min-width: 1.5em; font-size: .72rem; font-weight: 900; }
 @media (max-width: 480px) { .manual-toc-list { grid-template-columns: 1fr; } }
 .manual-section { background: rgba(255, 255, 255, 0.4); border: 1.5px solid rgba(0, 0, 0, 0.35); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: .88rem; line-height: 1.65; scroll-margin-top: 4px; }
@@ -825,7 +825,7 @@ body.power-save-mode .title-name { animation: none !important; }
 .diff.hard { background-position: center 88%; }
 
 /* 難易度ボタンの木目：同じ画像の、左・真ん中・右あたりを拡大して使い、柄が揃わないようにする */
-.diff.easy { background-size: 300% auto; background-position: 8% 42%; }
+.diff.easy { background-size: 300% auto; background-position: 22% 42%; }
 .diff.normal { background-size: 300% auto; background-position: 50% 50%; }
 .diff.hard { background-size: 300% auto; background-position: 100% 50%; }
 
@@ -921,10 +921,16 @@ body.power-save-mode .title-name { animation: none !important; }
 .rank-bonus { margin: 2px 0; text-align: center; font-size: .72rem; line-height: 1.2; color: var(--fg); }
 .rank-bonus b { color: #ffd34d; margin-right: 2px; }
 
-.rank-bonus .rb-num { font-size: 1.2em; font-weight: 900; }
+.rank-bonus .rb-num { font-size: 1.2em; font-weight: 900; color: #6bff7a; }
 
 /* HOME：「あと」の後ろのビール画像だけ、3px上・2px左へ（数字の位置はそのまま） */
 .home-account .rank-sub .beer-inline { translate: -2px -3px; }
 
 /* My：ニックネームの横の（ID）。小さめで、細い字 */
 .my-name .my-id { margin-left: 6px; font-size: .75em; font-weight: 400; }
+
+/* HOME：称号が未設定のときは、赤字の下線つきで、称号の設定へのリンクにする */
+.home-account .title-unset { background: none; border: 0; padding: 0; font: inherit; font-weight: 900; color: #ff6b6b; text-decoration: underline; cursor: pointer; }
+
+/* タイマーの「.」：左右の間隔を狭くする（スペースを使わず、幅を決めて中央に置く） */
+.timenum .tdot { display: inline-block; width: .5em; text-align: center; }

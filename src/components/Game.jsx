@@ -87,7 +87,7 @@ function TimeNum({ read }) {
     return () => cancelAnimationFrame(raf)
   }, [read])
   const cs = Math.floor(t * 100) // 10ミリ秒単位
-  return <span className="timenum">{Math.floor(cs / 100)} <span className="unit">S</span> {String(cs % 100).padStart(2, '0')} <span className="unit">ms</span></span>
+  return <span className="timenum">{Math.floor(cs / 100)}<span className="tdot">.</span>{String(cs % 100).padStart(2, '0')} <span className="unit">秒</span></span>
 }
 
 // 7桁固定（0,000,000）。上位の0とカンマは薄く表示
@@ -522,8 +522,8 @@ export default function Game({ diff, onFinish, paused = false, onPlayable, rank:
     if (!R.ended && isDeadlocked(R.grid)) {
       setGrid(R.grid.map((row) => row.map((p) => p && { ...p, clearing: true })))
       await psleep(400)
-      const before = R.grid
-      setGrid(makeGrid(kinds).map((row, r) => row.map((p, c) => ({ ...p, fromR: r - BOARD, poison: !!before[r][c]?.poison }))))
+      // 毒も、すべて消える（新しい盤面は、毒なし）
+      setGrid(makeGrid(kinds).map((row, r) => row.map((p) => ({ ...p, fromR: r - BOARD, poison: false }))))
       await psleep(600)
     }
     R.busy = false // 注いでいる間も盤面を操作できる

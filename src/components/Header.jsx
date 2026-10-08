@@ -14,7 +14,7 @@ const accountItems = (user) => (user
   ])
 const menuOf = (user) => [
   { id: 'manual', label: 'マニュアル', icon: 'information/マニュアル' },
-  { id: 'ranking', label: 'ランキング', icon: 'ranking/金' },
+  { id: 'ranking', label: 'ランキング・My統計', icon: 'ranking/金' },
   { id: 'account', label: 'アカウント関連', icon: 'information/アカウント', children: accountItems(user) },
   { id: 'settings', label: 'ゲーム設定', icon: 'information/設定' },
 ]

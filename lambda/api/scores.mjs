@@ -4,7 +4,7 @@ import {
   BEST_COUNT, DIFFICULTIES, RANKING_LIMIT, SCORE_RULES, START_TTL_SEC, TITLE_MIN_PT, TODAY_TTL_BUFFER_SEC,
 } from './config.mjs';
 import { signToken, verifyToken } from './auth.mjs';
-import { HttpError, requireUser } from './account.mjs';
+import { HttpError, publicProfile, requireUser } from './account.mjs';
 import { TITLES } from './titles.mjs';
 import { RANK_MIN_PT, rankInfo } from './rank.mjs';
 
@@ -103,16 +103,15 @@ export async function submitScore(db, user0, body) {
   for (const w of writes) await db.putScore(w);
   for (const d of deletes) await db.deleteScore(d.board, d.sk);
 
-  const ranks = {};
-  for (const key of ranksFor) {
-    const mine = account.rankKeys[key];
-    // 画面が探しやすいよう、本日のボードは日付ではなく "today#…" の名前で返す
-    if (mine) ranks[key.replace(/^d:[^#]+/, 'today')] = (await db.countBefore(key, mine.sk)) + 1;
-  }
-  return { best: account.best, totalBeers: account.totalBeers, totalGero: account.totalGero, ranks, newTitle, at, renewed: writes.map((w) => w.board) };
+  // 書き込んだ順位表の、覚えてあるデータを捨てる
+  for (const w of writes) rankCache.delete(w.board);
+
+  // 画面が、あらためて自分の情報を取り直さなくて済むよう、更新後のプロフィールも返す
+  return { best: account.best, totalBeers: account.totalBeers, totalGero: account.totalGero, newTitle, at, profile: publicProfile(account), renewed: writes.map((w) => w.board) };
 }
 
 // ---- ランキング ----
+const rankCache = new Map(); // 順位表の名前 → { at, items, accounts }
 // 返すのはニックネームなど表示用の項目だけ。ログインIDは含めない
 export async function getRanking(db, userOrNull, query) {
   const scope = query?.difficulty ?? 'any';
@@ -120,8 +119,16 @@ export async function getRanking(db, userOrNull, query) {
   if (!SCOPES.includes(scope) || !['all', 'today'].includes(period)) throw bad('ランキングの種類が不正です');
   const key = boardKey(periodKeyOf(period), scope);
 
-  const items = await db.queryBoard(key, RANKING_LIMIT);
-  const accounts = await db.getAccounts([...new Set(items.map((i) => i.loginId))]);
+  // 順位表（上位100件）と名前などは、サーバーの中で少しのあいだ覚えておき、DynamoDBへの読み取りを減らす
+  const ttl = Number(process.env.RANKING_CACHE_MS ?? 30_000);
+  let cached = rankCache.get(key);
+  if (!cached || Date.now() - cached.at >= ttl) {
+    const items = await db.queryBoard(key, RANKING_LIMIT);
+    const accounts = await db.getAccounts([...new Set(items.map((i) => i.loginId))]);
+    cached = { at: Date.now(), items, accounts };
+    rankCache.set(key, cached);
+  }
+  const { items, accounts } = cached;
   const rows = items.map((it, i) => ({
     rank: i + 1,
     nickname: accounts[it.loginId]?.nickname ?? '???',
@@ -137,8 +144,9 @@ export async function getRanking(db, userOrNull, query) {
   let me = null;
   const mine = userOrNull?.rankKeys?.[key];
   if (mine) {
+    const inList = items.findIndex((i) => i.sk === mine.sk);
     me = {
-      rank: (await db.countBefore(key, mine.sk)) + 1,
+      rank: inList >= 0 ? inList + 1 : (await db.countBefore(key, mine.sk)) + 1, // 上位100位以内なら、読み取りなしで分かる
       nickname: userOrNull.nickname, avatar: userOrNull.avatar, title: userOrNull.title ?? '', playerRank: mine.playRank ?? rankInfo(userOrNull.totalBeers ?? 0).rank,
       finalPt: mine.pt, rawPt: mine.rawPt, difficulty: mine.difficulty, beers: mine.beers, gero: mine.gero, at: mine.at,
     };
@@ -147,7 +155,11 @@ export async function getRanking(db, userOrNull, query) {
   return { board: key, limit: RANKING_LIMIT, rows, me };
 }
 
+// 名前・称号が変わったときなどに、順位表の記憶を捨てる
+export const clearRankingCache = () => rankCache.clear();
+
 // アカウント削除時：ランキング上の記録も消す
 export async function deleteUserScores(db, account) {
+  rankCache.clear();
   for (const [board, v] of Object.entries(account.rankKeys ?? {})) await db.deleteScore(board, v.sk);
 }

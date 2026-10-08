@@ -1,6 +1,6 @@
 // auth.jsx — ログイン状態と、開いているパネル（ログイン・ランキングなど）を全体で共有する
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { api } from './api'
+import { api, clearRankingCache } from './api'
 import { setSettings } from './settings'
 
 const Ctx = createContext(null)
@@ -33,13 +33,14 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signIn = useCallback((res) => { writeToken(res.token); setToken(res.token); setUser(res.profile); applyAccountSettings(res.profile) }, [])
-  const signOut = useCallback(() => { writeToken(null); setToken(null); setUser(null); resetPest() }, [])
+  const signOut = useCallback(() => { writeToken(null); setToken(null); setUser(null); resetPest(); clearRankingCache() }, [])
+  const setProfile = useCallback((profile) => { if (profile) setUser(profile) }, []) // サーバーが返した最新のプロフィールで、そのまま差しかえる（取り直さない）
   const refresh = useCallback(async () => {
     if (!token) return
     const r = await api.getMe(token)
     setUser(r.profile)
   }, [token])
 
-  const value = { user, token, signIn, signOut, refresh, panel, focus, openPanel, closePanel: () => { setPanel(null); setFocus(null) } }
+  const value = { user, token, signIn, signOut, refresh, setProfile, panel, focus, openPanel, closePanel: () => { setPanel(null); setFocus(null) } }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

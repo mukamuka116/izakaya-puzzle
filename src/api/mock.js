@@ -188,10 +188,9 @@ export const mockApi = {
     if (newTitle) a.titles.push(newTitle)
     db.entries.push({ ...entry, nickname: a.nickname, owner: a.loginId });
     save(db);
-    const rank = (scope, period) => rankList(db, a, scope, period).findIndex((r) => r.mine) + 1;
     return wait({
       best: a.best, totalBeers: a.totalBeers, totalGero: a.totalGero, newTitle, at: entry.at,
-      ranks: { [`all#${difficulty}`]: rank(difficulty, 'all'), 'all#any': rank('any', 'all'), [`today#${difficulty}`]: rank(difficulty, 'today'), 'today#any': rank('any', 'today') },
+      profile: profile(a),
     });
   },
 

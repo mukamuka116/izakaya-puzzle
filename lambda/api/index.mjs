@@ -39,7 +39,7 @@ export const makeHandler = (injectedDb) => async (event) => {
       case 'POST /account/recovery/verify': return reply(200, await account.recoveryVerify(db, body));
       case 'POST /account/recovery/reset': return reply(200, await account.recoveryReset(db, body));
       case 'GET /account/me': return reply(200, await account.getMe(db, auth));
-      case 'PUT /account/me': return reply(200, await account.updateMe(db, auth, body));
+      case 'PUT /account/me': { const r = await account.updateMe(db, auth, body); scores.clearRankingCache(); return reply(200, r); }
       case 'POST /account/password': return reply(200, await account.changePassword(db, auth, body));
       case 'POST /account/delete':
         return reply(200, await account.deleteAccount(db, auth, body, (a) => scores.deleteUserScores(db, a)));

@@ -215,7 +215,7 @@ function RecoveryPanel() {
 
 // ---------------- アカウント編集（削除） ----------------
 function EditPanel() {
-  const { user, token, signIn, signOut, refresh, closePanel, focus } = useAuth()
+  const { user, token, signIn, signOut, setProfile, closePanel, focus } = useAuth()
   const [nickname, setNickname] = useState(user?.nickname ?? '')
   const [pw, setPw] = useState({ oldPassword: '', newPassword: '' })
   const [delPw, setDelPw] = useState('')
@@ -225,8 +225,10 @@ function EditPanel() {
   const [title, setTitle] = useState(user?.title ?? '')
   const { busy, error, run: runBusy } = useBusy()
   const pestRef = useRef(null)
+  const titleRef = useRef(null)
   useEffect(() => {
     if (focus === 'pest') setTimeout(() => pestRef.current?.scrollIntoView({ block: 'start' }), 50) // お邪魔キャラの項目まで自動でスライド
+    if (focus === 'title') setTimeout(() => titleRef.current?.scrollIntoView({ block: 'start' }), 50) // 称号変更の項目まで自動でスライド
   }, [])
   const { pest } = useSettings()
   if (!user) return null
@@ -238,10 +240,10 @@ function EditPanel() {
     </>
   )
 
-  const saveNick = () => run('nick', async () => { await api.updateMe(token, { nickname }); await refresh(); setMsg('ニックネームを変更しました') })
+  const saveNick = () => run('nick', async () => { setProfile((await api.updateMe(token, { nickname })).profile); setMsg('ニックネームを変更しました') })
   const saveTitle = (next) => run('title', async () => {
     setTitle(next)
-    try { await api.updateMe(token, { title: next }); await refresh(); setMsg('称号を変更しました') }
+    try { setProfile((await api.updateMe(token, { title: next })).profile); setMsg('称号を変更しました') }
     catch (e) { setTitle(user.title ?? ''); throw e } // 失敗したら、選択を元に戻す
   })
   const savePest = (next) => run('pest', async () => {
@@ -264,7 +266,7 @@ function EditPanel() {
       <button className="btn small" onClick={saveNick} disabled={busy}>変更</button>
       <Result k="nick" />
 
-      <h3 className="sec"><img src="/images/icon/information/称号.png" alt="" className="set-icon" /> 称号変更</h3>
+      <h3 className="sec" ref={titleRef}><img src="/images/icon/information/称号.png" alt="" className="set-icon" /> 称号変更</h3>
       <TitleSelect owned={user.titles} value={title} onChange={saveTitle} />
       <Result k="title" />
 
@@ -410,9 +412,9 @@ function RankingPanel() {
   }, [tab, scope, token])
 
   return (
-    <Sheet title="ランキング" onClose={closePanel} wide big>
+    <Sheet title="ランキング・My統計" onClose={closePanel} wide big>
       <div className="tabs">
-        {[['today', '本日'], ['all', '総合'], ['my', 'My']].map(([k, label]) => (
+        {[['today', '本日'], ['all', '総合'], ['my', 'My統計']].map(([k, label]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
         ))}
       </div>
@@ -465,30 +467,29 @@ const sliderSound = () => playSound('ボタン押下', sfxVolume(0.6))
 function SettingsPanel() {
   const { closePanel, user, token } = useAuth()
   const st = useSettings()
-  const saveTimer = useRef(null)
   const initialPowerSave = useRef(st.powerSave) // 開いたときの省電力モード（切りかえて保存したら、HOMEへ戻す）
   const [dirty, setDirty] = useState(false) // 設定を変えたら、保存ボタンで知らせる
 
-  // 変更したら端末に保存し、ログイン中はアカウントにも保存する（少し待ってまとめて送る）
+  // 変更したら端末にはすぐ保存する。アカウントへは、保存ボタンを押したとき（または画面を閉じるとき）に、1回だけまとめて送る
+  const pending = useRef(false)
+  const flush = () => {
+    if (user && pending.current) { pending.current = false; api.updateMe(token, { settings: getSettings() }).catch(() => {}) }
+  }
   const change = (patch) => {
     setDirty(true)
     setSettings(patch)
-    if (user) {
-      clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(() => api.updateMe(token, { settings: getSettings() }).catch(() => {}), 800)
-    }
+    pending.current = true
   }
-  useEffect(() => () => clearTimeout(saveTimer.current), [])
+  useEffect(() => () => flush(), []) // ×で閉じたときも、変更があれば送る
 
-  // 保存：設定は変更のたびに端末へ保存済み。ログイン中は、待たずにアカウントへ送って閉じる
+  // 保存：ログイン中は、変更があればアカウントへ送って閉じる
   const save = () => {
-    clearTimeout(saveTimer.current)
-    if (user) api.updateMe(token, { settings: getSettings() }).catch(() => {})
+    flush()
     closePanel()
     if (getSettings().powerSave !== initialPowerSave.current) window.dispatchEvent(new Event('pb-go-home')) // 省電力モードを切りかえて保存したら、HOMEへ
   }
 
-  const reset = () => { setDirty(true); resetSettings(); if (user) api.updateMe(token, { settings: getSettings() }).catch(() => {}) }
+  const reset = () => { setDirty(true); resetSettings(); pending.current = true }
 
   return (
     <Sheet title={<><img src="/images/icon/information/設定.png" alt="" className="set-icon" /> ゲーム設定</>} onClose={closePanel}>
