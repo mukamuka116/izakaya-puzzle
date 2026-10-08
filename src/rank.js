@@ -12,3 +12,6 @@ export function rankInfo(totalBeers = 0) {
   return { rank, into: left, need: rank >= RANK_MAX ? null : 5 + rank }
 }
 export const feverBonusSec = (rank) => Math.floor(rank / FEVER_BONUS_STEP) * FEVER_BONUS_SEC
+
+// そのランクになるまでに必要な、累計ビール（ランク0は0杯）
+export const beersForRank = (rank) => 5 * rank + (rank * (rank - 1)) / 2

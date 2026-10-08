@@ -79,7 +79,8 @@ function AppInner() {
       const before = rankInfo(user.totalBeers).rank
       setSubmit({ status: 'sending' })
       api.submitScore(token, { startToken, difficulty: diffKey, rawPt, finalPt: Math.round(rawPt * diff.mult), beers: st.fever, gero: st.gero })
-        .then((r) => { setLastPlayAt(r.at); const after = rankInfo(r.totalBeers).rank; setSubmit({ status: 'ok', newTitle: r.newTitle, rankUp: after > before ? after : null, nextLeft: nextLeft(r.totalBeers) }); setProfile(r.profile) })
+        // newBest：この難易度の、自分のベストを更新したか
+        .then((r) => { setLastPlayAt(r.at); const after = rankInfo(r.totalBeers).rank; setSubmit({ status: 'ok', newBest: !!r.renewed?.includes(`all#${diffKey}`), newTitle: r.newTitle, rankUp: after > before ? after : null, nextLeft: nextLeft(r.totalBeers) }); setProfile(r.profile) })
         .catch((e) => setSubmit({ status: 'error', message: e.message }))
     } else if (user) {
       // 開始の札を受け取れなかったとき：黙って飛ばさず、画面に出す
@@ -130,13 +131,20 @@ function AppInner() {
             {user && submit.nextLeft !== null && <div>{<>次のランクまで、あと <img className="beer-inline" src="/images/ビール.png" alt="ビール" /><span className="title-name">{submit.nextLeft}</span></>}</div>}
           </div>
         )}
-        <p className="line submit-line">
-          {!user && <>ログインすると記録がランキングに載ります <button className="link" onClick={() => openPanel('login')}>ログインはこちら</button></>}
-          {user && submit?.status === 'skipped' && `スコア${RANK_MIN_PT}pt未満のため、記録されません`}
-          {user && submit?.status === 'sending' && '記録を送信中…'}
-          {user && submit?.status === 'error' && `記録を送れませんでした（${submit.message}）`}
-          {user && submit?.status === 'ok' && <button className="link rank-link" onClick={() => openPanel('ranking')}>ランキングを確認する</button>}
-        </p>
+        <div className="result-card submit-card">
+          {user && submit?.status === 'ok' && submit.newBest && <div className="best-update">Myベストスコア更新！</div>}
+          {(!user || (submit && submit.status !== 'ok')) && (
+            <div className="line submit-line">
+              {!user && <>ログインすると記録がランキングに載ります <button className="link" onClick={() => openPanel('login')}>ログインはこちら</button></>}
+              {user && submit?.status === 'skipped' && `スコア${RANK_MIN_PT}pt未満のため、記録されません`}
+              {user && submit?.status === 'sending' && '記録を送信中…'}
+              {user && submit?.status === 'error' && `記録を送れませんでした（${submit.message}）`}
+            </div>
+          )}
+          <div className="line submit-line">
+            <button className="link rank-link" onClick={() => openPanel('ranking')}>ランキングを確認する</button>
+          </div>
+        </div>
         <button className="btn" onClick={startGame}>{diff.label}で再プレイ</button>
         <button className="btn cancel" onClick={() => setPhase('title')}>タイトルへ</button>
       </div>

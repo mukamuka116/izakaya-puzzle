@@ -486,7 +486,7 @@ export default function Game({ diff, onFinish, paused = false, onPlayable, rank:
       const leftOf = (g) => Math.min(...g.cells.filter((x) => x.r === bottom(g)).map((x) => x.c))
       groups.sort((a, b) => bottom(b) - bottom(a) || leftOf(a) - leftOf(b))
       // 1コンボずつ、0.3秒の間隔をあけて順番に消す
-      for (const g of groups) {
+      for (const [gi, g] of groups.entries()) {
         if (R.ended) break
         combo++
         const no = combo
@@ -506,7 +506,8 @@ export default function Game({ diff, onFinish, paused = false, onPlayable, rank:
         }
         const marked = new Set(g.cells.map(({ r, c }) => r * BOARD + c))
         setGrid(R.grid.map((row, r) => row.map((p, c) => (p && marked.has(r * BOARD + c) ? { ...p, clearing: true } : p))))
-        await psleep(330 + 300)
+        // 最後の塊は、宝箱・鍵と同じく、消えたらすぐ落とす（途中の塊は、次の塊との間隔をあける）
+        await psleep(gi < groups.length - 1 ? 330 + 300 : 350)
       }
       if (R.ended) break
       setGrid(dropAndRefill(R.grid, kinds, R.fever))

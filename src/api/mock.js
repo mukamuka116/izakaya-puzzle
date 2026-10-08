@@ -186,11 +186,13 @@ export const mockApi = {
     const unowned = b.rawPt >= TITLE_MIN_PT ? TITLES.filter((t) => !a.titles.includes(t.name)) : [] // スコアが足りないと獲得できない
     const newTitle = unowned.length ? unowned[Math.floor(Math.random() * unowned.length)].name : null
     if (newTitle) a.titles.push(newTitle)
+    const prev = db.entries.filter((e) => e.owner === a.loginId && e.difficulty === difficulty)
+    const renewedBest = !prev.length || prev.every((e) => entry.finalPt > e.finalPt) // この難易度の、自分のベスト更新
     db.entries.push({ ...entry, nickname: a.nickname, owner: a.loginId });
     save(db);
     return wait({
       best: a.best, totalBeers: a.totalBeers, totalGero: a.totalGero, newTitle, at: entry.at,
-      profile: profile(a),
+      profile: profile(a), renewed: renewedBest ? [`all#${difficulty}`] : [],
     });
   },
 
